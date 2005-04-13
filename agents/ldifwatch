@@ -152,7 +152,7 @@ sub all_entries
   }
 
 my $usage=<<EOU;
-Usage: $0 [-l logfile] [-T] [-h] [-m <size>] -j <jid> -p <password> -P <pubsub host> -n <node>
+Usage: $0 [-l logfile] [-c CA File] [-C CA Dir] [-s] [-S spocp:port] [-T] [-h] [-m <size>] -j <jid> -p <password> -P <pubsub host> -n <node>
 
 $0 Generate XMPP pubsub events from slapd replog file
 
