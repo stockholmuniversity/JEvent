@@ -113,8 +113,11 @@ sub init
 
     $self->{_ug} = Data::UUID->new();
 
-    $self->{_xmpp} =
-      Net::XMPP::Client->new(debuglevel=>$self->{DebugLevel},debugfile=>$self->{DebugFile});
+    my @opts = ();
+    push(@opts,debuglevel=>$self->{DebugLevel}) if $self->{DebugLevel};
+    push(@opts,debugfile=>$self->{DebugFile}) if $self->{DebugFile};
+
+    $self->{_xmpp} = Net::XMPP::Client->new(@opts);
     $self->Client->SetCallBacks(onauth=>sub
 				 {
 				   $self->Client->PresenceSend();
@@ -127,7 +130,7 @@ sub init
 
     $self->Client->SetMessageCallBacks(error=>sub
 					{
-					  warn $_[1]->GetXML();
+					  #warn $_[1]->GetXML();
 					},
 					groupchat=>sub
 					{
@@ -304,9 +307,9 @@ sub Subscribe
     $subscribe->SetJID($opts{JID} || $self->JID);
     $subscribe->SetSubID($opts{SubID}) if $opts{SubID};
 
-    warn $iq->GetXML();
+    #warn $iq->GetXML();
     my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
-    warn $msg->GetXML() if $msg;
+    #warn $msg->GetXML() if $msg;
     $msg;
   }
 
@@ -326,9 +329,9 @@ sub Unsubscribe
     $subscribe->SetJID($opts{JID} || $self->JID);
     $subscribe->SetSubID($opts{SubID}) if $opts{SubID};
 
-    warn $iq->GetXML();
+    #warn $iq->GetXML();
     my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
-    warn $msg->GetXML() if $msg;
+    #warn $msg->GetXML() if $msg;
     $msg;
   }
 
@@ -349,9 +352,9 @@ sub Publish
     $item->SetId(defined $opts{Id} ? $opts{Id} : $self->{_ug}->create_str());
     $item->SetContent($opts{Content});
 
-    warn $iq->GetXML();
+    #warn $iq->GetXML();
     my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
-    warn $msg->GetXML() if $msg;
+    #warn $msg->GetXML() if $msg;
     $msg;
   }
 
@@ -370,7 +373,7 @@ sub initSubscriptions
 
 sub Usage
   {
-    my $uid = $_[0]->username;
+    my $uid = $_[0]->Username;
     $_[0]->{Usage} || "Hello I am $uid";
   }
 
@@ -386,7 +389,7 @@ sub evalCommand
 	my $tag;
 
 	return undef unless ($tag) = $body =~ /^\s*(\S+):\s+/o;
-	return undef unless $tag eq $self->username || $tag eq $self->JID->GetJID("base");
+	return undef unless $tag eq $self->Username || $tag eq $self->JID->GetJID("base");
       }
     else
       {
@@ -397,13 +400,13 @@ sub evalCommand
 	    if ($room_jid)
 	      {
 		my $presence = Net::XMPP::Presence->new();
-		$presence->SetPresence(To=>$room_jid->GetJID("base")."/".$self->username,
+		$presence->SetPresence(To=>$room_jid->GetJID("base")."/".$self->Username,
 				       From=>$self->JID->GetJID());
 		$presence->NewChild("http://jabber.org/protocol/muc");
 		my $result = $self->Client->SendAndReceiveWithID($presence,$self->{Timeout});
 		if ($result->GetErrorCode())
 		  {
-		    warn $result->GetXML();
+		    #warn $result->GetXML();
 		    return undef;
 		  }
 
