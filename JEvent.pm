@@ -41,27 +41,60 @@ sub new
     $this->init();
   }
 
-sub client
+sub LogWarn
+  {
+    my($self,$msg,@args) = @_;
+
+    syslog('warning',$msg,@args);
+  }
+
+sub LogError
+  {
+    my($self,$msg,@args) = @_;
+
+    syslog('error',$msg,@args);
+  }
+
+sub LogInfo
+  {
+    my($self,$msg,@args) = @_;
+
+    syslog('info',$msg,@args);
+  }
+
+sub LogDebug
+  {
+    my($self,$msg,@args) = @_;
+
+    syslog('debug',$msg,@args);
+  }
+
+sub Client
   {
     $_[0]->{_xmpp};
   }
 
-sub hostname
+sub JID
   {
-    $_[0]->{_jid}->GetServer();
+    $_[0]->{_jid}
   }
 
-sub username
+sub Hostname
   {
-    $_[0]->{_jid}->GetUserID();
+    $_[0]->JID->GetServer();
   }
 
-sub resource
+sub Username
   {
-    $_[0]->{_jid}->GetResource();
+    $_[0]->JID->GetUserID();
   }
 
-sub password
+sub Resource
+  {
+    $_[0]->JID->GetResource();
+  }
+
+sub Password
   {
     my $pw = $_[0]->{Password};
     return $pw if $pw;
@@ -82,9 +115,9 @@ sub init
 
     $self->{_xmpp} =
       Net::XMPP::Client->new(debuglevel=>3,debugfile=>'stdout');
-    $self->{_xmpp}->SetCallBacks(onauth=>sub
+    $self->Client->SetCallBacks(onauth=>sub
 				 {
-				   $self->{_xmpp}->PresenceSend();
+				   $self->Client->PresenceSend();
 				   &{$self->{StartCB}}($self) if ref $self->{StartCB} eq 'CODE';
 				 },
 				 onprocess=>sub
@@ -92,7 +125,7 @@ sub init
 				   &{$self->{ProcessCB}}($self) if ref $self->{ProcessCB} eq 'CODE';
 				 });
 
-    $self->{_xmpp}->SetMessageCallBacks(error=>sub
+    $self->Client->SetMessageCallBacks(error=>sub
 					{
 					  warn $_[1]->GetXML();
 					},
@@ -109,7 +142,7 @@ sub init
 					  &{$self->{MessageCB}}($self,@_) if ref $self->{MessageCB} eq 'CODE';
 					});
 
-    $self->{_xmpp}->SetPresenceCallBacks(subscribe => sub {
+    $self->Client->SetPresenceCallBacks(subscribe => sub {
 					   my $ok = ref $self->{SubscriptionAuthorization} eq 'CODE' ?
 					     &{$self->{SubscriptionAuthorization}}($self,@_) : 1;
 					   if ($ok)
@@ -122,12 +155,12 @@ sub init
 					     }
 					 });
 
-    $self->{_xmpp}->SetXPathCallBacks("/message/event[\@xmlns=\'http://jabber.org/protocol/pubsub#event\']" => sub
+    $self->Client->SetXPathCallBacks("/message/event[\@xmlns=\'http://jabber.org/protocol/pubsub#event\']" => sub
 				      {
 					&{$self->{EventCB}}($self,@_) if ref $self->{EventCB} eq 'CODE';
 				      });
 
-    $self->{_xmpp}->AddNamespace(ns=>'http://jabber.org/protocol/pubsub',
+    $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/pubsub',
 				 tag=>'pubsub',
 				 xpath=>{
 					 Publish => { calls => [qw/Get Add Defined/],
@@ -163,7 +196,7 @@ sub init
 					},
 				);
 
-    $self->{_xmpp}->AddNamespace(ns=>'__netxmpp__:pubsub:publish',
+    $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:publish',
 				 tag => 'publish',
 				 xpath=>{
 					 Node => { path => '@node' },
@@ -176,14 +209,14 @@ sub init
 					},
 				);
 
-    $self->{_xmpp}->AddNamespace(ns=>'__netxmpp__:pubsub:publish:item',
+    $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:publish:item',
 				 tag => 'item',
 				 xpath=>{
 					 Id => { path => '@id' },
 					 Content => { type => 'raw', path => '.' }
 					});
 
-    $self->{_xmpp}->AddNamespace(ns=>'__netxmpp__:pubsub:subscribe',
+    $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:subscribe',
 				 tag => 'subscribe',
 				 xpath=>{
 					 Node => { path => '@node' },
@@ -191,7 +224,7 @@ sub init
 					 JID => { type => 'jid', path => '@jid' }
 					});
 
-    $self->{_xmpp}->AddNamespace(ns=>'__netxmpp__:pubsub:unsubscribe',
+    $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:unsubscribe',
 				 tag => 'unsubscribe',
 				 xpath=>{
 					 Node => { path => '@node' },
@@ -199,7 +232,7 @@ sub init
 					 SubID => { path => '@subid' }
 					});
 
-    $self->{_xmpp}->AddNamespace(ns=>'__netxmpp__:pubsub:entity',
+    $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:entity',
 				 tag => 'entity',
 				 xpath=>{
 					 Node => { path => '@node' },
@@ -209,7 +242,7 @@ sub init
 					 Subscription => { path => '@subscribed' }
 					});
 
-    $self->{_xmpp}->AddNamespace(ns=>'__netxmpp__:pubsub:affiliations',
+    $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:affiliations',
 				 tag => 'affiliations',
 				 xpath => {
 					   Entity => { calls => [qw/Get Add Defined/],
@@ -218,7 +251,7 @@ sub init
 						       child => { ns => '__netxmpp__:pubsub:entity' } }
 					  });
 
-    $self->{_xmpp}->AddNamespace(ns=>'__netxmpp__:pubsub:items',
+    $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:items',
 				 tag => 'unsubscribe',
 				 xpath=>{
 					 Node => { path => '@node' },
@@ -231,7 +264,7 @@ sub init
 						   child => { ns => '__netxmpp__:pubsub:publish:item' } }
 					});
 
-    $self->{_xmpp}->AddNamespace(ns=>'http://jabber.org/protocol/pubsub#event',
+    $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/pubsub#event',
 				 tag => 'event',
 				 xpath => {
 					   Item => { calls => [ qw/Get Add Defined/],
@@ -240,13 +273,13 @@ sub init
 						     child => { ns => '__netxmpp__:pubsub:publish:item' } }
 					  });
 
-    $self->{_xmpp}->AddNamespace(ns=>'http://jabber.org/protocol/muc',
+    $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/muc',
 				 tag => 'x',
 				 xpath => {
 					   Password => { path => '@password' }
 					  });
 
-    $self->{_xmpp}->AddNamespace(ns=>'jabber:x:conference',
+    $self->Client->AddNamespace(ns=>'jabber:x:conference',
 				 tag => 'x',
 				 xpath => {
 					   JID => { path => '@jid', type => 'jid' }
@@ -262,17 +295,17 @@ sub Subscribe
 
     my $iq = Net::XMPP::IQ->new();
     $iq->SetIQ(type=>'set',
-	       from=>$self->{_jid},
-	       to=>$opts{Host} || $self->hostname);
+	       from=>$self->JID,
+	       to=>$opts{Host} || $self->Hostname);
 
     my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
     my $subscribe = $pubsub->AddSubscribe();
     $subscribe->SetNode($opts{Node});
-    $subscribe->SetJID($opts{JID} || $self->{_jid});
+    $subscribe->SetJID($opts{JID} || $self->JID);
     $subscribe->SetSubID($opts{SubID}) if $opts{SubID};
 
     warn $iq->GetXML();
-    my $msg = $self->client->SendAndReceiveWithID($iq,$self->{Timeout});
+    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
     warn $msg->GetXML() if $msg;
     $msg;
   }
@@ -284,17 +317,17 @@ sub Unsubscribe
 
     my $iq = Net::XMPP::IQ->new();
     $iq->SetIQ(type=>'set',
-	       from=>$self->{_jid},
-	       to=>$opts{Host} || $self->hostname);
+	       from=>$self->JID,
+	       to=>$opts{Host} || $self->Hostname);
 
     my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
     my $subscribe = $pubsub->AddUnsubscribe();
     $subscribe->SetNode($opts{Node});
-    $subscribe->SetJID($opts{JID} || $self->{_jid});
+    $subscribe->SetJID($opts{JID} || $self->JID);
     $subscribe->SetSubID($opts{SubID}) if $opts{SubID};
 
     warn $iq->GetXML();
-    my $msg = $self->client->SendAndReceiveWithID($iq,$self->{Timeout});
+    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
     warn $msg->GetXML() if $msg;
     $msg;
   }
@@ -306,8 +339,8 @@ sub Publish
 
     my $iq = Net::XMPP::IQ->new();
     $iq->SetIQ(type=>'set',
-	       from=>$self->{_jid},
-	       to=>$opts{Host} || $self->hostname);
+	       from=>$self->JID,
+	       to=>$opts{Host} || $self->Hostname);
 
     my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
     my $publish = $pubsub->AddPublish();
@@ -317,7 +350,7 @@ sub Publish
     $item->SetContent($opts{Content});
 
     warn $iq->GetXML();
-    my $msg = $self->client->SendAndReceiveWithID($iq,$self->{Timeout});
+    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
     warn $msg->GetXML() if $msg;
     $msg;
   }
@@ -353,7 +386,7 @@ sub evalCommand
 	my $tag;
 
 	return undef unless ($tag) = $body =~ /^\s*(\S+):\s+/o;
-	return undef unless $tag eq $self->username || $tag eq $self->{_jid}->GetJID("base");
+	return undef unless $tag eq $self->username || $tag eq $self->JID->GetJID("base");
       }
     else
       {
@@ -365,9 +398,9 @@ sub evalCommand
 	      {
 		my $presence = Net::XMPP::Presence->new();
 		$presence->SetPresence(To=>$room_jid->GetJID("base")."/".$self->username,
-				       From=>$self->{_jid}->GetJID());
+				       From=>$self->JID->GetJID());
 		$presence->NewChild("http://jabber.org/protocol/muc");
-		my $result = $self->{_xmpp}->SendAndReceiveWithID($presence,$self->{Timeout});
+		my $result = $self->Client->SendAndReceiveWithID($presence,$self->{Timeout});
 		if ($result->GetErrorCode())
 		  {
 		    warn $result->GetXML();
@@ -375,24 +408,24 @@ sub evalCommand
 		  }
 
 		$self->{_rooms}->{$room_jid}++;
-		return $self->{_xmpp}->MessageSend(from=>$self->{_jid}->GetJID("base"),
-						   to=>$room_jid->GetJID("base"),
-						   type=>'groupchat',
-						   body=>$self->Usage());
+		return $self->Client->MessageSend(from=>$self->JID->GetJID("base"),
+						  to=>$room_jid->GetJID("base"),
+						  type=>'groupchat',
+						  body=>$self->Usage());
 	      }
 	  }
       }
 
     my $from = Net::XMPP::JID->new($msg->GetFrom());
 
-    return $self->client->MessageSend(to=>$from->GetJID("base"),
-				      type=>$type,
-				      body=>"I have no commands configured.\n")
+    return $self->Client->MessageSend(to=>$from->GetJID("base"),
+				       type=>$type,
+				       body=>"I have no commands configured.\n")
       unless ref $self->{Commands} eq 'HASH';
 
     my ($cmd,$args);
 
-    return $self->client->MessageSend(to=>$from->GetJID("base"),
+    return $self->Client->MessageSend(to=>$from->GetJID("base"),
 				      type=>$type,
 				      body=>"I don't understand this: \"$body\"")
       unless ($cmd,$args) = $body =~ /^\s*(\S+)\s*(.*)\s*$/o;
@@ -408,7 +441,7 @@ sub evalCommand
 	  {
 	    $body .= "$c\n";
 	  }
-	return $self->client->MessageSend(to=>$from->GetJID("base"),
+	return $self->Client->MessageSend(to=>$from->GetJID("base"),
 					  type=>$type,
 					  body=>$body);
       },last BUILTIN;
@@ -419,7 +452,7 @@ sub evalCommand
       {
 	if (ref $self->{CommandAuthorization} eq 'CODE')
 	  {
-	    return $self->client->MessageSend(to=>$from->GetJID("base"),
+	    return $self->Client->MessageSend(to=>$from->GetJID("base"),
 					      type=>$type,
 					      body=>'Not authorized')
 	      unless &{$self->{CommandAuthorization}}($self,$from->GetJID("base"),$type,$cmd,@args);
@@ -428,13 +461,13 @@ sub evalCommand
 	
 	my $result = &{$self->{Commands}->{$cmd}}($self,$from->GetJID("base"),$type,$cmd,@args);
 
-	return $self->client->MessageSend(to=>$from->GetJID("base"),
+	return $self->Client->MessageSend(to=>$from->GetJID("base"),
 					  type=>$type,
 					  body=>$result) if $result;
       }
     else
       {
-	return $self->client->MessageSend(to=>$from->GetJID("base"),
+	return $self->Client->MessageSend(to=>$from->GetJID("base"),
 					  type=>$type,
 					  body=>"No such command: \"$cmd\"")
       }
@@ -444,26 +477,21 @@ sub spocpCommandAuthorization
   {
     my ($self,$from,$cmd,@args) = @_;
 
-    warn "TODO: implement spocpCommandAuthorization\n";
-    return 1;
     my $spocp = Net::SPOCP::Protocol->new(server=>$self->{SPOCPServer});
-    my $to = $self->{_jid}->GetJID("base");
-    my $res = $spocp->query([jevent => [[command => $cmd],[from => $from],[to => $to]]]);
-    !$res->is_error;
+    my $to = $self->JID->GetJID("base");
+    my $res = $spocp->query([jevent => [command => $cmd],[from => $from],[to => $to]]);
+    return !$res->is_error;
   }
 
 sub spocpSubscriptionAuthorization
   {
     my ($self,$sid,$msg) = @_;
 
-    warn "TODO: implement spocpSubscriptionAuthorization\n";
-    return 1;
-
     my $spocp = Net::SPOCP::Protocol->new(server=>$self->{SPOCPServer});
-    my $to = $self->{_jid}->GetJID("base");
+    my $to = $self->JID->GetJID("base");
     my $from = Net::XMPP::JID->new($msg->GetFrom())->GetJID("base");
-    my $res = $spocp->query([jevent => [[method => 'subcribe'],[from => $from],[to => $to]]]);
-    !$res->is_error;
+    my $res = $spocp->query([jevent => [method => 'subcribe'],[from => $from],[to => $to]]);
+    return !$res->is_error;
   }
 
 sub Run
@@ -479,18 +507,18 @@ sub Run
     $self->{SubscriptionAuthorization} = \&spocpSubscriptionAuthorization
       unless ref $self->{SubscriptionAuthorization} eq 'CODE';
     $self->{Data} = $opts{Data} if $opts{Data};
-    $self->{_xmpp}->Execute(hostname=>$self->hostname,
-			    username=>$self->username,
-			    password=>$self->password,
-			    tls=>$self->{UseTLS},
-			    tlsoptions=>{
-					 SSL_verify_mode=>$self->{SSLVerify}||0x01 , #require
-					 SSL_ca_file=>$self->{CAFile}||'/etc/ssl/ca.crt',
-					 SSL_ca_dir=>$self->{CADir}
-					},
-			    resource=>$self->resource,
-			    processtimeout=>$self->{ProcessTimeout} || 1,
-			    register=>0);
+    $self->Client->Execute(hostname=>$self->Hostname,
+			   username=>$self->Username,
+			   password=>$self->Password,
+			   tls=>$self->{UseTLS},
+			   tlsoptions=>{
+					SSL_verify_mode=>$self->{SSLVerify}||0x01 , #require
+					SSL_ca_file=>$self->{CAFile}||'/etc/ssl/ca.crt',
+					SSL_ca_dir=>$self->{CADir}
+				       },
+			   resource=>$self->resource,
+			   processtimeout=>$self->{ProcessTimeout} || 1,
+			   register=>0);
   }
 
 
@@ -615,6 +643,11 @@ By creating a rule of the form
 anyone can use the command 'foo'. Consult your SPOCP documentation for
 further details.
 
+When the agent receives a subscription request the following rule is
+use to authorize it:
+
+ (jevent (method subscribe) (from $from_jid) (to $to_jid))
+
 =head1 METHODS
 
 $je->Publish(Host    => $pubsub_hostname,
@@ -630,6 +663,18 @@ $je->Unsubscribe(Host  => $pubsub_hostname,
                  Node  => $pubsub_node,
                  SubID => $subid,
                  JID   => $jid_to_subscribe_as);
+
+$je->LogWarn($format,@args);
+$je->LogError($format,@args);
+$je->LogInfo($format,@args);
+$je->LogDebug($format,@args);
+
+Log messages to syslog with the relevant priority.
+
+$je->Client
+
+Access the underlying Net::XMPP::Client object. This can be used
+to send an receive messages as a regular XMPP client would.
 
 =head1 AUTHOR
 
