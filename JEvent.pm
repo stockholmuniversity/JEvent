@@ -114,7 +114,7 @@ sub init
     $self->{_ug} = Data::UUID->new();
 
     $self->{_xmpp} =
-      Net::XMPP::Client->new(debuglevel=>3,debugfile=>'stdout');
+      Net::XMPP::Client->new(debuglevel=>$self->{DebugLevel},debugfile=>$self->{DebugFile});
     $self->Client->SetCallBacks(onauth=>sub
 				 {
 				   $self->Client->PresenceSend();
@@ -516,7 +516,7 @@ sub Run
 					SSL_ca_file=>$self->{CAFile}||'/etc/ssl/ca.crt',
 					SSL_ca_dir=>$self->{CADir}
 				       },
-			   resource=>$self->resource,
+			   resource=>$self->Resource,
 			   processtimeout=>$self->{ProcessTimeout} || 1,
 			   register=>0);
   }

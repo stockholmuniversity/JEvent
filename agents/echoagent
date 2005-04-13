@@ -23,7 +23,7 @@ SYNOPSIS
 
 EOU
 
-getopts('l:hj:p:P:n:C:c:sS:') or
+getopts('l:hj:p:t:P:n:C:c:sS:') or
   die $usage;
 
 die $usage if $opt_h;
