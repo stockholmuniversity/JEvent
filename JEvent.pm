@@ -30,6 +30,7 @@ our $VERSION = '0.11';
 use Net::XMPP qw(Client);
 use Net::XMPP::JID;
 use Data::UUID;
+use Net::SPOCP;
 use Sys::Syslog qw(:DEFAULT);
 
 sub new
