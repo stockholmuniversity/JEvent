@@ -6,7 +6,7 @@ use JEvent;
 my $usage=<<EOU;
 Usage: $0 [-h] [-c CA File] [-C CA Dir] [-s] [-t <timeout>] [-S spocp:port] -j <jid> -p <password> -P <pubsub host> -n <node>
 
-$0 Generate XMPP pubsub events from slapd replog file
+$0 Sample JEvent agent
 
 SYNOPSIS
 
