@@ -1,6 +1,0 @@
-Revision history for Perl extension JEvent.
-
-0.01  Wed Oct 27 00:47:33 2004
-	- original version; created by h2xs 1.21 with options
-		-n JEvent -X
-
