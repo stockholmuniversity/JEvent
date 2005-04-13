@@ -93,7 +93,6 @@ use IO::Scalar;
 use Getopt::Std;
 use File::Temp qw(mktemp);
 use Net::LDAP::LDIF;
-use Sys::Syslog;
 use JEvent;
 
 sub lock_copy_file
@@ -169,11 +168,12 @@ SYNOPSIS
 \t-c\tThe OpenSSL CA-file used to verify the server
 \t-C\tThe OpenSSL CA-directory used to verify the server
 \t-s\tUse TLS to connect (requires -c or -C)
+\t-S\tUse this SPOCP server to authorize requests
 \t-h\tShow this text
 
 EOU
 
-getopts('l:Thj:p:P:n:m:C:c:s') or
+getopts('l:Thj:p:P:n:m:C:c:sS:') or
   die $usage;
 
 die $usage if $opt_h;
@@ -185,6 +185,7 @@ die $usage unless $opt_p;
 die $usage unless $opt_P;
 die $usage unless $opt_n;
 die $usage if $opt_s && (!$opt_C && !opt_c);
+$opt_S = 'spocp.su.se:3456' unless $opt_S;
 my $status = "running";
 my $host = Sys::Hostname::hostname();
 my %trace;
@@ -193,13 +194,14 @@ my @backlog;
 my $d = File::Modified->new(files=>[$opt_l]);
 my $je = JEvent->new(Usage=>"Watching $opt_l on $host",
 		     JID=>$opt_j,
+		     SPOCPServer=>$opt_S,
 		     Password=>$opt_p,
 		     CAFile=>$opt_c,
 		     CADir=>$opt_C,
 		     UseTLS=>$opt_s ? 1 : 0,
 		     Commands=>{
 				shutdown => sub {
-				  syslog LOG_INFO,"Got shutdown from $_[1]";
+				  $_[0]->LogInfo("Got shutdown from $_[1]");
 				  closelog;
 				  warn "Got shutdown from $_[1]. Bye...\n";
 				  exit;
@@ -229,7 +231,7 @@ my $je = JEvent->new(Usage=>"Watching $opt_l on $host",
 			   $out->write($e);
 
 			   foreach my $t (keys %trace) {
-			     $self->client->MessageSend(to=>$t,type=>$trace{$t},body=>$data);
+			     $self->Client->MessageSend(to=>$t,type=>$trace{$t},body=>$data);
 			   }
 
 			   my $res = $self->Publish(Host=>$opt_P,
@@ -238,11 +240,10 @@ my $je = JEvent->new(Usage=>"Watching $opt_l on $host",
 						    Content=>"<ldif><![CDATA[$data]]></ldif>");
 			   if (!$res || $res->GetError)
 			     {
-			       syslog LOG_WARN,"Got error for dn=%s: %s",$e->dn,$res ? $res->GetErrorCode : 'unknown';
+			       $_[0]->LogWarn("Got error for dn=%s: %s",$e->dn,$res ? $res->GetErrorCode : 'unknown');
 			       unshift(@backlog,$e);
 			     }
 			 }
 		     });
 
-openlog 'ldifwatch','pid',LOG_USER;
 $je->Run();
