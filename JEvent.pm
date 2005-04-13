@@ -480,7 +480,7 @@ sub spocpCommandAuthorization
   {
     my ($self,$from,$cmd,@args) = @_;
 
-    my $spocp = Net::SPOCP::Protocol->new(server=>$self->{SPOCPServer});
+    my $spocp = Net::SPOCP::Client->new(server=>$self->{SPOCPServer});
     my $to = $self->JID->GetJID("base");
     my $res = $spocp->query([jevent => [command => $cmd],[from => $from],[to => $to]]);
     return !$res->is_error;
@@ -490,7 +490,7 @@ sub spocpSubscriptionAuthorization
   {
     my ($self,$sid,$msg) = @_;
 
-    my $spocp = Net::SPOCP::Protocol->new(server=>$self->{SPOCPServer});
+    my $spocp = Net::SPOCP::Client->new(server=>$self->{SPOCPServer});
     my $to = $self->JID->GetJID("base");
     my $from = Net::XMPP::JID->new($msg->GetFrom())->GetJID("base");
     my $res = $spocp->query([jevent => [method => 'subcribe'],[from => $from],[to => $to]]);
