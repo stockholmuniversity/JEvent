@@ -4,39 +4,28 @@ use Getopt::Std;
 use JEvent;
 
 my $usage=<<EOU;
-Usage: $0 [-h] [-c CA File] [-C CA Dir] [-s] [-t <timeout>] [-S spocp:port] -j <jid> -p <password> -P <pubsub host> -n <node>
+Usage: $0 [-h] -c agent.ini
 
 $0 Sample JEvent agent
 
 SYNOPSIS
 
-\t-j\tThe JID to authenticate as
-\t-p\tThe password for this JID
-\t-P\tThe domainame of the pubsub service
-\t-n\tThe name of the pubsub node to publish at
-\t-c\tThe OpenSSL CA-file used to verify the server
-\t-C\tThe OpenSSL CA-directory used to verify the server
-\t-s\tUse TLS to connect (requires -c or -C)
-\t-S\tUse this SPOCP server to authorize requests
-\t-t\tSleep this number of seconds between processing
+\t-c\tINI-style configuration file for this agent.
 \t-h\tShow this text
 
 EOU
 
-getopts('l:hj:p:t:P:n:C:c:sS:') or
-  die $usage;
-
+getopts('c:h');
 die $usage if $opt_h;
+die $usage unless $opt_c;
+
+die $usage unless -f $opt_c;
+
+my $ini = Config::IniFiles->new(-file=>$opt_c)
+  or die "Unable to read configuration from $opt_c: $!\n";
 
 my $host = Sys::Hostname::hostname();
-my $je = JEvent->new(Usage=>"Testclient on $host",
-		     JID=>$opt_j,
-		     SPOCPServer=>$opt_S,
-		     Password=>$opt_p,
-		     CAFile=>$opt_c,
-		     CADir=>$opt_C,
-		     UseTLS=>$opt_s ? 1 : 0,
-		     ProcessTimeout=>$opt_t,
+my $je = JEvent->new(Config=>$ini,
 		     Commands=>{
 				shutdown => sub {
 				  my ($self,$from,$type,$cmd,@args) = @_;
