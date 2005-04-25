@@ -110,7 +110,7 @@ sub Password
 sub cfg
   {
     my $self = shift;
-    $self->{_cfg}->val(@_);
+    $self->{Config}->val(@_);
   }
 
 sub gen_uuid
