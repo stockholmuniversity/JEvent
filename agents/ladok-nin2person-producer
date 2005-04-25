@@ -14,14 +14,12 @@ $0 Sample JEvent agent
 SYNOPSIS
 
 \t-c\tINI-style configuration file for this agent.
-\t-t\tTag in the ini-file where LADOK-db info is (dbuser,dsn,dbpass)
 \t-h\tShow this text
 
-Apart from the common ini-arguments this agents expects information 
+Apart from the common ini-arguments this agents expects information
 about the connection to LADOK:
 
-[sometag]
-
+[LADOK]
 db = database name
 dsn = DBI-datasource
 dbuser = login
@@ -32,13 +30,12 @@ EOU
 getopts('c:h:t:');
 die $usage if $opt_h;
 die $usage unless $opt_c;
-die $usage unless $opt_t;
 
 die $usage unless -f $opt_c;
 
 my $ini = Config::IniFiles->new(-file=>$opt_c);
-OOL->db($ini->val($opt_t,'db'));
-OOL->connection($ini->val($opt_t,'dsn'),$ini->val($opt_t,'dbuser'),$ini->val($opt_t,'dbpass'));
+OOL->db($ini->val('LADOK','db'));
+OOL->connection($ini->val('LADOK','dsn'),$ini->val('LADOK','dbuser'),$ini->val('LADOK','dbpass'));
 
 sub publishPersonInfo
   {
