@@ -36,8 +36,7 @@ die $usage unless $opt_c;
 
 die $usage unless -f $opt_c;
 
-my $ini = Config::IniFiles->new(-file=>$opt_c)
-
+my $ini = Config::IniFiles->new(-file=>$opt_c);
 OOL->db($ini->val('LADOK','db'));
 OOL->connection($ini->val('LADOK','dsn'),$ini->val('LADOK','dbuser'),$ini->val('LADOK','dbpass'));
 
