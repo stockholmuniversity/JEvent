@@ -120,7 +120,7 @@ sub init
     openlog "JEvent $0","pid",'LOG_USER';
 
     $self->{_jid} = Net::XMPP::JID->new($self->{JID} || $self->cfg('JEvent','JID'));
-    $self->{Timeout} = $self->cfg('JEvent','Timeout') unless $self->{Timeout}
+    $self->{Timeout} = $self->cfg('JEvent','Timeout') unless $self->{Timeout};
     $self->{Timeout} = 5 unless $self->{Timeout};
     $self->{Password} = $self->cfg('JEvent','Password') unless $self->{Password};
     $self->{_ug} = Data::UUID->new();
