@@ -32,12 +32,16 @@ use Net::XMPP::JID;
 use Data::UUID;
 use Net::SPOCP;
 use Sys::Syslog qw(:DEFAULT);
+use Config::IniFiles;
 
 sub new
   {
     my $self = shift;
     my $class = ref $self || $self;
+
     my %me = @_;
+    $me{Config} = Config::IniFiles->new() unless UNIVERSAL::isa($me{Config},'Config::IniFiles');
+
     my $this = bless \%me,$class;
     $this->init();
   }
@@ -103,20 +107,40 @@ sub Password
     die "Missing Password and/or PasswordCB\n";
   }
 
+sub cfg
+  {
+    my $self = shift;
+    $self->{_cfg}->val(@_);
+  }
+
 sub init
   {
     my $self = shift;
 
     openlog "JEvent $0","pid",'LOG_USER';
 
-    $self->{_jid} = Net::XMPP::JID->new($self->{JID});
+    $self->{_jid} = Net::XMPP::JID->new($self->{JID} || $self->cfg('JEvent','JID'));
+    $self->{Timeout} = $self->cfg('JEvent','Timeout') unless $self->{Timeout}
     $self->{Timeout} = 5 unless $self->{Timeout};
-
+    $self->{Password} = $self->cfg('JEvent','Password') unless $self->{Password};
     $self->{_ug} = Data::UUID->new();
 
     my @opts = ();
+    $self->{DebugLevel} = $self->cfg('JEvent','DebugLevel') unless $self->{DebugLevel};
+    $self->{DebugFile} = $self->cfg('JEvent','DebugFile') unless $self->{DebugFile};
     push(@opts,debuglevel=>$self->{DebugLevel}) if $self->{DebugLevel};
     push(@opts,debugfile=>$self->{DebugFile}) if $self->{DebugFile};
+
+    $self->{Host} = $self->cfg('PubSub','Host') unless $self->{Host};
+    $self->{Node} = $self->cfg('PubSub','Node') unless $self->{Node};
+    $self->{Description} = $self->cfg('JEvent','Description') unless $self->{Description};
+
+    $self->{SPOCPServer} = $self->cfg('SPOCP','Server') unless $self->{SPOCPServer};
+    $self->{UseTLS} = $self->cfg('JEvent','UseTLS') unless $self->{UseTLS};
+    $self->{SSLVerify} = $self->cfg('SSL','verify') unless $self->{SSLVerify};
+    $self->{CAFile} = $self->cfg('SSL','cafile') unless $self->{CAFile};
+    $self->{CADir} = $self->cfg('SSL','cadir') unless $self->{CADir};
+    $self->{ProcessTimeout} = $self->cfg('JEvent','ProcessTimeout');
 
     $self->{_xmpp} = Net::XMPP::Client->new(@opts);
     $self->Client->SetCallBacks(onauth=>sub
@@ -172,6 +196,11 @@ sub init
 						      path => 'publish',
 						      child => { ns => '__netxmpp__:pubsub:publish' } },
 
+					 Retract => { calls => [qw/Get Add Defined/],
+						      type => 'child',
+						      path => 'retract',
+						      child => { ns => '__netxmpp__:pubsub:retract' } },
+
 					 Subscribe => { calls => [qw/Get Add Defined/],
 							type => 'child',
 							path => 'subscribe',
@@ -184,7 +213,7 @@ sub init
 
 					 Entity => { calls => [qw/Get Add Defined/],
 						     type => 'child',
-						     path => 'unsubscribe',
+						     path => 'entity',
 						     child => { ns => '__netxmpp__:pubsub:entity' } },
 
 					 Affiliations => { calls => [qw/Get Add Defined/],
@@ -192,11 +221,10 @@ sub init
 							   path => 'affiliations',
 							   child => { ns => '__netxmpp__:pubsub:affiliations' } },
 					
-					 Items => { calls => [qw/Get Add Defined/],
+					 Items => { calls => [qw/Get Set/],
 						    type => 'child',
 						    path => 'items',
-						    child => { ns => '__netxmpp__:pubsub:items' } }
-
+						    child => { ns => '__netxmpp__:pubsub:items' } },
 					},
 				);
 
@@ -204,11 +232,23 @@ sub init
 				 tag => 'publish',
 				 xpath=>{
 					 Node => { path => '@node' },
-
-					 Item => { calls => [qw/Get Add Defined/],
+					 Item => { calls => [qw/Get Set/],
 						   type => 'child',
 						   path => 'item',
 						   child => { ns => '__netxmpp__:pubsub:publish:item' } }
+
+					},
+				);
+
+    $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:retract',
+				 tag => 'publish',
+				 xpath=>{
+					 Node => { path => '@node' },
+
+					 Item => { calls => [qw/Get Set/],
+						   type => 'child',
+						   path => 'item',
+						   child => { ns => '__netxmpp__:pubsub:retract:item' } }
 
 					},
 				);
@@ -218,6 +258,12 @@ sub init
 				 xpath=>{
 					 Id => { path => '@id' },
 					 Content => { type => 'raw', path => '.' }
+					});
+
+    $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:retract:item',
+				 tag => 'item',
+				 xpath=>{
+					 Id => { path => '@id' },
 					});
 
     $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:subscribe',
@@ -256,25 +302,29 @@ sub init
 					  });
 
     $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:items',
-				 tag => 'unsubscribe',
+				 tag => 'items',
 				 xpath=>{
 					 Node => { path => '@node' },
 					 JID => { type => 'jid' },
 					 SubID => { path => '@subid' },
 					 MaxItems => { path => '@max_items' },
-					 Item => { calls => [ qw/Get Add Defined/],
+					 Item => { calls => [ qw/Add/],
 						   type => 'child',
 						   path => 'item',
-						   child => { ns => '__netxmpp__:pubsub:publish:item' } }
+						   child => { ns => '__netxmpp__:pubsub:item' } },
+					 Items => { calls => [ qw/Get/],
+						    type => 'child',
+						    path => 'item',
+						    child => { ns => '__netxmpp__:pubsub:item' } }
 					});
 
     $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/pubsub#event',
 				 tag => 'event',
 				 xpath => {
-					   Item => { calls => [ qw/Get Add Defined/],
-						     type => 'child',
-						     path => 'item',
-						     child => { ns => '__netxmpp__:pubsub:publish:item' } }
+					   Items => { calls => [ qw/Get Add/],
+						      type => 'child',
+						      path => 'items',
+						      child => { ns => '__netxmpp__:pubsub:items' } }
 					  });
 
     $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/muc',
@@ -344,11 +394,11 @@ sub Publish
     my $iq = Net::XMPP::IQ->new();
     $iq->SetIQ(type=>'set',
 	       from=>$self->JID,
-	       to=>$opts{Host} || $self->Hostname);
+	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
 
     my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
     my $publish = $pubsub->AddPublish();
-    $publish->SetNode($opts{Node});
+    $publish->SetNode($opts{Node} || $self->cfg('PubSub','Node'));
     my $item = $publish->AddItem();
     $item->SetId(defined $opts{Id} ? $opts{Id} : $self->{_ug}->create_str());
     $item->SetContent($opts{Content});
@@ -375,7 +425,7 @@ sub initSubscriptions
 sub Usage
   {
     my $uid = $_[0]->Username;
-    $_[0]->{Usage} || "Hello I am $uid";
+    $_[0]->{Description} || "Hello I am $uid";
   }
 
 sub evalCommand
@@ -498,6 +548,8 @@ sub spocpSubscriptionAuthorization
     return !$res->is_error;
   }
 
+sub PreExecute() { }
+
 sub Run
   {
     my $self = shift;
@@ -511,6 +563,9 @@ sub Run
     $self->{SubscriptionAuthorization} = \&spocpSubscriptionAuthorization
       unless ref $self->{SubscriptionAuthorization} eq 'CODE';
     $self->{Data} = $opts{Data} if $opts{Data};
+
+    $self->PreExecute();
+
     $self->Client->Execute(hostname=>$self->Hostname,
 			   username=>$self->Username,
 			   password=>$self->Password,
