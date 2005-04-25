@@ -15,19 +15,6 @@ SYNOPSIS
 
 \t-c\tINI-style configuration file for this agent.
 \t-h\tShow this text
-
-1. Incoming Event format:
-
-<items>
-  <item id="uuid">rdf</item>
-</items>
-
-2. Outgoing Event format:
-
-<items>
-   <item id="uuid">rdf</item>
-</items>
-
 EOU
 
 getopts('c:h');
@@ -46,7 +33,7 @@ sub publishPersonInfo
     my $p = OOL::Person->retrieve(pnr=>$nin);
     $self->LogError("No such person in LADOK: $nin"),return undef unless $p;
 
-    my $model = JEvent::RDF->model;
+    my $model = $self->model;
 
     my $subject = RDF::Core::Resource->new();
     $model->addStmt(RDF::Core::Statement->new($subject,
@@ -60,7 +47,7 @@ sub publishPersonInfo
     $model->addStmt(RDF::Core::Statement->new($subject,
 					      $subject->new("urn:x-su:ldap:schema:givenName"),
 					      RDF::Core::Litteral->new($givenName)));
-    $self->Publish(Content=>JEvent::RDF->serialize($model));
+    $self->PublishModel(Model=>$model);
   }
 
 my $host = Sys::Hostname::hostname();

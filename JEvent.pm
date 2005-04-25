@@ -113,6 +113,11 @@ sub cfg
     $self->{_cfg}->val(@_);
   }
 
+sub gen_uuid
+  {
+    $_[0]->{_ug}->create_str();
+  }
+
 sub init
   {
     my $self = shift;
@@ -400,7 +405,7 @@ sub Publish
     my $publish = $pubsub->AddPublish();
     $publish->SetNode($opts{Node} || $self->cfg('PubSub','Node'));
     my $item = $publish->AddItem();
-    $item->SetId(defined $opts{Id} ? $opts{Id} : $self->{_ug}->create_str());
+    $item->SetId(defined $opts{Id} ? $opts{Id} : $self->gen_uuid);
     $item->SetContent($opts{Content});
 
     #warn $iq->GetXML();
