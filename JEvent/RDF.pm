@@ -58,6 +58,24 @@ sub serialize
     $xml;
   }
 
+sub item
+  {
+    my ($self,$model) = @_;
+
+    my $id = $self->gen_uuid();
+    "<item id='$id'>".$self->serialize($model)."</item>";
+  }
+
+sub PublishModel
+  {
+    my $self = shift;
+
+    my %args = @_;
+    $args{Content} = $self->item($model);
+    my @opts = %args;
+    $self->Publish(@opts);
+  }
+
 sub PreExecute
   {
     my $self = shift;
