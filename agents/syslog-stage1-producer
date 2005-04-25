@@ -1,0 +1,95 @@
+#!/usr/bin/env perl
+
+use Getopt::Std;
+use Config::IniFiles;
+use JEvent;
+use Digest::SHA1 qw(sha1_hex);
+
+my $usage=<<EOU;
+Usage: $0 [-h] -c agent.ini
+
+$0 Sample JEvent agent
+
+SYNOPSIS
+
+\t-c\tINI-style configuration file for this agent.
+\t-h\tShow this text
+
+EOU
+
+getopts('c:h');
+die $usage if $opt_h;
+die $usage unless $opt_c;
+
+die $usage unless -f $opt_c;
+
+my $ini = Config::IniFiles->new(-file=>$opt_c)
+
+my @programs = qw(cucipop pam_unix sshd(pam_unix));
+%progs;
+
+foreach (@programs)
+  {
+    $progs{$_}++;
+  }
+
+my $host = Sys::Hostname::hostname();
+my $je = JEvent->new(Config=>$ini,
+		     Description=>"LogDB producer running on $host",
+		     Commands=>{
+				list => sub {
+				  return join(',',keys %progs);
+				},
+				add => sub {
+				  my ($self,$from,$type,$cmd,@args) = @_;
+				  foreach (@args)
+				    {
+				      $progs{$_}++;
+				    }
+				},
+				remove => sub {
+				  my ($self,$from,$type,$cmd,@args) = @_;
+				  foreach (@args)
+				    {
+				      delete $progs{$_};
+				    }
+				}
+			       },
+		     ProcessCB=>sub {
+		       while (<STDIN>)
+			 {
+			   chomp;
+
+			   my $id = sha1_hex($_);
+
+			   next unless s/^<[^>]+>\s*(\S+)\s+(\S+)\s+(\S+)\s+([^\/]+)\/(\S+)\s+(\S+):\s+//o;
+
+			   my ($host, $loghost, $source) = ($4, $5, $6);
+			   my $tsstr = "$1 $2 $3";
+			   my ($program,$pid) = $source =~ /([^\[]+)\[([0-9]+)\]/o;
+			   $program = $source unless $pid;
+			   $pid = '-1' unless $pid;
+			   $priority = 1 unless $priority;
+			   my $message = $_;
+
+			   next unless $program;
+			   next unless $progs{$program} && !$progs{ANY};
+
+			   my $timestamp = str2time($tsstr);
+
+			   $_[0]->Publish(Host=>$opt_H,
+					  Node=>$opt_n,
+					  Content=><<EOC;
+<logdb id="$id">
+   <timestamp>$timestamp</timestamp>
+   <host>$host</host>
+   <loghost>$loghost</loghost>
+   <program pid="$pid">$program</program>
+   <priority>$priority</priority>
+   <message>$message</message>
+</logdb>
+EOC
+			 );
+		     });
+
+$je->Run();
