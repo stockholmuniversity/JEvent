@@ -44,16 +44,18 @@ sub rdfEventCB
 
 sub model
   {
+    my $self = shift;
     my $storage = shift || RDF::Core::Storage::Memory->new();
     RDF::Core::Model->new(Storage=>$storage);
   }
 
 sub serialize
   {
+    my ($self,$model) = @_;
     my $xml = "";
-    my $s = RDF::Core::Model::Serializer(Model=>$_[1],
-					 Output=>\$xml,
-					 BaseURI => $_[2] || 'urn:x-jevent:');
+    my $s = RDF::Core::Model::Serializer->new(Model=>$_[1],
+					      Output=>\$xml,
+					      BaseURI => $_[2] || 'urn:x-jevent:');
     $s->serialize;
     $xml;
   }
@@ -69,9 +71,10 @@ sub item
 sub PublishModel
   {
     my $self = shift;
+    
 
     my %args = @_;
-    $args{Content} = $self->item($model);
+    $args{Content} = $self->item($args{Model});
     my @opts = %args;
     $self->Publish(@opts);
   }
