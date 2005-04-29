@@ -7,13 +7,14 @@ use OOL;
 use Unicode::String qw(latin1 utf8);
 
 my $usage=<<EOU;
-Usage: $0 [-h] -c agent.ini
+Usage: $0 [-h] -c agent.ini [-o </etc>]
 
 $0 Sample JEvent agent
 
 SYNOPSIS
 
 \t-c\tINI-style configuration file for this agent.
+\t-o\tDirectory where odbc.ini and odbcinst.ini is
 \t-h\tShow this text
 
 Apart from the common ini-arguments this agents expects information
@@ -27,11 +28,14 @@ dbpass = pass
 
 EOU
 
-getopts('c:h:t:');
+getopts('c:h:o:');
 die $usage if $opt_h;
 die $usage unless $opt_c;
 
-die $usage unless -f $opt_c;
+die "ODBC System directory $opt_o is not a directory\n" if $opt_o && ! -d $opt_o;
+
+$ENV{ODBCSYSINI} = $opt_o || '/etc';
+$ENV{ODBCINI} = $ENV{ODBCSYSINI}."/odbc.ini";
 
 my $ini = Config::IniFiles->new(-file=>$opt_c)
   or die "Unable to read $opt_c\n";
@@ -45,19 +49,40 @@ sub publishPersonInfo
     $self->LogError("No such person in LADOK: $nin"),return undef unless $p;
 
     my $model = $self->model;
+    my $subject = RDF::Core::Resource->new("urn:x-ladok:identifiers:personnummer:$nin");
 
-    my $subject = RDF::Core::Resource->new();
+    # The request header
+    my $reqr = RDF::Core::Resource->new("urn:x-su:jevent:directory");
+    $model->addStmt(RDF::Core::Statement->new($reqr,
+					      $reqr->new("urn:x-su:jevent:directory:object"),
+					      $subject));
+
+    $model->addStmt(RDF::Core::Statement->new($reqr,
+					      $reqr->new("urn:x-su:jevent:directory:identifier"),
+					      RDF::Core::Literal->new("socialSecurityNumber")));
+
+    # The data description
     $model->addStmt(RDF::Core::Statement->new($subject,
 					      $subject->new("urn:x-su:ldap:schema:norEduPersonNIN"),
-					      RDF::Core::Litteral->new($nin)));
+					      RDF::Core::Literal->new($nin)));
+    $model->addStmt(RDF::Core::Statement->new($subject,
+                                              $subject->new("urn:x-su:ldap:schema:socialSecurityNumber"),
+					      RDF::Core::Literal->new($nin)));
+    foreach my $oc qw(top person inetOrgPerson eduPerson norEduPerson ssnObject)
+      {
+	$model->addStmt(RDF::Core::Statement->new($subject,
+						  $subject->new("urn:x-su:ldap:schema:objectClass"),
+						  RDF::Core::Literal->new($oc)));
+      }
+
     my $sn = $p->getNameAsUTF8('enamn');
     my $givenName = $p->getNameAsUTF8('tnamn');
     $model->addStmt(RDF::Core::Statement->new($subject,
 					      $subject->new("urn:x-su:ldap:schema:sn"),
-					      RDF::Core::Litteral->new($sn)));
+					      RDF::Core::Literal->new($sn)));
     $model->addStmt(RDF::Core::Statement->new($subject,
 					      $subject->new("urn:x-su:ldap:schema:givenName"),
-					      RDF::Core::Litteral->new($givenName)));
+					      RDF::Core::Literal->new($givenName)));
     $self->PublishModel(Model=>$model);
   }
 
@@ -81,11 +106,9 @@ my $je = JEvent::RDF->new(Config=>$ini,
 			  RDFCB => sub {
 			    my ($self,$model) = @_;
 			    my $nins = $model->getObjects("urn:x-su:ldap:schema:norEduPersonNIN");
-			    warn $nins;
 			    return unless ref $nins eq 'ARRAY';
 			    foreach my $litt (@{$nins})
 			      {
-				warn $litt;
 				publishPersonInfo($self,$litt->getValue());
 			      }
 			  });
