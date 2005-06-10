@@ -25,7 +25,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(
 	
 );
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 use Net::XMPP qw(Client);
 use Net::XMPP::JID;
@@ -225,6 +225,11 @@ sub init
 							   type => 'child',
 							   path => 'affiliations',
 							   child => { ns => '__netxmpp__:pubsub:affiliations' } },
+
+					 Create => { calls => [qw/Get Add Defined/],
+					             type => 'child',
+					             path => 'create',
+						     child => { ns => '__netxmpp__:pubsub:create' } },
 					
 					 Items => { calls => [qw/Get Set/],
 						    type => 'child',
@@ -237,7 +242,7 @@ sub init
 				 tag => 'publish',
 				 xpath=>{
 					 Node => { path => '@node' },
-					 Item => { calls => [qw/Get Set/],
+					 Item => { calls => [qw/Get Set Add/],
 						   type => 'child',
 						   path => 'item',
 						   child => { ns => '__netxmpp__:pubsub:publish:item' } }
@@ -245,11 +250,17 @@ sub init
 					},
 				);
 
+    $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:create',
+                                tag => 'create',
+                                xpath => {
+                                          Node => { path => '@node' }
+                                         }
+                                );
+
     $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:retract',
-				 tag => 'publish',
+				 tag => 'retract',
 				 xpath=>{
 					 Node => { path => '@node' },
-
 					 Item => { calls => [qw/Get Set/],
 						   type => 'child',
 						   path => 'item',
@@ -344,6 +355,26 @@ sub init
 					   JID => { path => '@jid', type => 'jid' }
 					  });
 
+    $self->Client->AddNamespace(ns=>'jabber:x:data',
+                                tag=>'x',
+                                xpath => {
+                                           Type => { path => '@type' },
+                                           Title => { path => 'title/text()' },
+                                           Instructions => { path => 'instructions/text()' },
+                                           Field => { calls => [ qw/Get Add/ ],
+                                                      type => 'child',
+                                                      path => 'field',
+                                                      child => { ns => '__netxmpp__:form:field' } }
+                                         });
+
+    $self->Client->AddNamespace(ns=>'__netxmpp__:form:field',
+                                tag=>'field',
+                                xpath => {
+                                           Type => { path => '@type' },
+                                           Label => { path => '@label' },
+                                           Var => { path => '@var' }  
+                                         });
+
     $self;
   }
 
@@ -425,6 +456,47 @@ sub initSubscriptions
 	    $self->Subscribe($s->{Host},$s->{Node})
 	  }
       }
+  }
+
+sub MForm
+  {
+    my ($self,%args) = @_;
+    my $message = Net::XMPP::Message->new();
+    $message->SetTo($args{To});
+    $message->SetFrom($args{From});
+    $message->SetBody('Please complete this form');
+    my $form = $message->NewChild('jabber:x:data');
+    $form->SetTitle('Testform');
+    $form->SetInstructions('apa bakar');
+    my $field = $form->AddField();
+    $field->SetVar('kaka');
+    $field->SetType('text-single');
+    $field->SetLabel('vilken'); 
+
+    my $msg = $self->Client->SendAndReceiveWithID($message,$self->{Timeout});
+    $msg->GetXML() if $msg;
+  }
+
+sub Form
+  {
+    my ($self,%args) = @_;
+    my $iq = Net::XMPP::IQ->new();
+    $iq->SetIQ(type=>'get',
+               from=>$args{From},
+               to=>$args{To});
+    my $q = $iq->NewChild('jabber:iq:register');
+    my $form = $q->NewChild('jabber:x:data');
+    $form->SetTitle('Testform');
+    $form->SetType('form');
+    $form->SetInstructions('apa bakar');
+    my $field = $form->AddField();
+    $field->SetVar('kaka');
+    $field->SetType('text-single');
+    $field->SetLabel('vilken');
+
+    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+    warn $msg->GetXML() if $msg;
+    $msg;
   }
 
 sub Usage
@@ -536,6 +608,8 @@ sub spocpCommandAuthorization
   {
     my ($self,$from,$cmd,@args) = @_;
 
+    return 1 unless $self->{SPOCPServer};
+
     my $spocp = Net::SPOCP::Client->new(server=>$self->{SPOCPServer});
     my $to = $self->JID->GetJID("base");
     my $res = $spocp->query([jevent => [command => $cmd],[from => $from],[to => $to]]);
@@ -545,6 +619,8 @@ sub spocpCommandAuthorization
 sub spocpSubscriptionAuthorization
   {
     my ($self,$sid,$msg) = @_;
+
+    return 1 unless $self->{SPOCPServer};
 
     my $spocp = Net::SPOCP::Client->new(server=>$self->{SPOCPServer});
     my $to = $self->JID->GetJID("base");
