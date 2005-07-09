@@ -783,7 +783,7 @@ sub GetFormFieldValue
 
     foreach my $field ($form->GetField())
       {
-	next unless $field->GetVar() eq $var;x
+	next unless $field->GetVar() eq $var;
 	return $field->GetValue();
       }
 
