@@ -178,13 +178,14 @@ sub init
     $self->Client->SetPresenceCallBacks(subscribe => sub {
 					   my $ok = ref $self->{SubscriptionAuthorization} eq 'CODE' ?
 					     &{$self->{SubscriptionAuthorization}}($self,@_) : 1;
+                                           warn $_[1]->GetXML();
 					   if ($ok)
 					     {
-					       $self->PresenceSend({to=>$_[1]->GetFrom(),type=>'subscribed'});
+					       $self->Client->PresenceSend(to=>$_[1]->GetFrom(),type=>'subscribed');
 					     }
 					   else
 					     {
-					       $self->PresenceSend({to=>$_[1]->GetFrom(),type=>'unsubscribed'});
+					       $self->Client->PresenceSend(to=>$_[1]->GetFrom(),type=>'unsubscribed');
 					     }
 					 });
 
@@ -231,6 +232,21 @@ sub init
 					             path => 'create',
 						     child => { ns => '__netxmpp__:pubsub:create' } },
 					
+					 Delete => { calls => [qw/Get Add Defined/],
+                                                     type => 'child',
+                                                     path => 'delete',
+                                                     child => { ns => '__netxmpp__:pubsub:delete' } },
+
+                                         Purge => { calls => [qw/Get Add Defined/],
+                                                     type => 'child',
+                                                     path => 'purge',
+                                                     child => { ns => '__netxmpp__:pubsub:purge' } },
+
+                                         Entities => { calls => [qw/Get Add Defined/],
+                                                     type => 'child',
+                                                     path => 'entities',
+                                                     child => { ns => '__netxmpp__:pubsub:entities' } },
+
 					 Items => { calls => [qw/Get Set/],
 						    type => 'child',
 						    path => 'items',
@@ -254,6 +270,31 @@ sub init
                                 tag => 'create',
                                 xpath => {
                                           Node => { path => '@node' }
+                                         }
+                                );
+
+    $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:delete',
+                                tag => 'delete',
+                                xpath => {
+                                          Node => { path => '@node' }
+                                         }
+                                );
+
+    $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:purge',
+                                tag => 'purge',
+                                xpath => {
+                                          Node => { path => '@node' }
+                                         }
+                                );
+
+    $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:entities',
+                                tag => 'entities',
+                                xpath => {
+                                          Node => { path => '@node' },
+					  Entity => { calls => [qw/Get Set Add/],
+					              type => 'child',
+						      path => 'entity',
+						      child => { ns => '__netxmpp__:pubsub:entity' } }
                                          }
                                 );
 
@@ -305,7 +346,8 @@ sub init
 					 JID => { type => 'jid', path => '@jid' },
 					 Affiliation => { path => '@affiliation' },
 					 SubID => { path => '@subid' },
-					 Subscription => { path => '@subscribed' }
+					 Subscription => { path => '@subscription' },
+                                         Subscribed => { path => '@subscribed' }
 					});
 
     $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:affiliations',
@@ -340,7 +382,17 @@ sub init
 					   Items => { calls => [ qw/Get Add/],
 						      type => 'child',
 						      path => 'items',
-						      child => { ns => '__netxmpp__:pubsub:items' } }
+						      child => { ns => '__netxmpp__:pubsub:items' } },
+
+					   Delete => { calls => [ qw/Get Add/],
+						       type => 'child',
+						       path => 'delete',
+						       child => { ns => '__netxmpp__:pubsub:delete' } },
+
+                                           Purge => { calls => [ qw/Get Add/],
+                                                       type => 'child',
+                                                       path => 'purge',
+                                                       child => { ns => '__netxmpp__:pubsub:purge' } }
 					  });
 
     $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/muc',
@@ -354,6 +406,15 @@ sub init
 				 xpath => {
 					   JID => { path => '@jid', type => 'jid' }
 					  });
+
+    $self->Client->AddNamespace(ns=>'http://jevent.it.su.se/NS/command',
+				tag => 'command',
+				xpath => {
+					  Form => { calls => [ qw/Set Defined Get/ ],
+						    type  => 'child',
+						    path  => 'x',
+						    child => { ns => 'jabber:x:data' } }
+					 });
 
     $self->Client->AddNamespace(ns=>'jabber:x:data',
                                 tag=>'x',
@@ -372,10 +433,131 @@ sub init
                                 xpath => {
                                            Type => { path => '@type' },
                                            Label => { path => '@label' },
-                                           Var => { path => '@var' }  
+                                           Var => { path => '@var' }
                                          });
 
+    $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/disco#items',
+				tag=>'query',
+				xpath => {
+					  Item => {
+						   calls => [ qw/Get Add/ ],
+						   type => 'child',
+						   path => 'item',
+						   child => { ns => '__netxmpp__:disco:items' } 
+						  },
+					  Node => { path => '@node' }
+					 });
+
+    $self->Client->AddNamespace(ns=>'__netxmpp__:disco:items',
+				tag => 'item',
+				xpath => {
+					  JID => { path => '@jid', type=>'jid' },
+					  Name => { path => '@name' },
+					  Node => { path => '@node' }
+					 });
+
     $self;
+  }
+
+use Getopt::Long;
+
+sub cmd_pubsub
+  {
+    my ($self,$from,$type,$cmd,@args) = @_;
+
+    return "Must be used as 'pubsub'" unless $cmd eq 'pubsub';
+
+    my %opts = (affiliation=>'none',subscription=>'none',help=>0);
+    my @opts = ("subid=s","affiliation=s","subscription=s");
+
+    my $usage=<<EOH;
+$cmd create      <node>
+$cmd delete      <node>
+$cmd purge       <node>
+$cmd entities    <node>
+$cmd setentity   <node> <jid> --subscription=<subscr> --affiliation=<aff>
+$cmd subscribe   <node> --subid=<subid>
+$cmd unsubscribe <node> --subid=<subid>
+$cmd publishers  <node> {<jid>}+
+EOH
+
+    my $subcmd = shift @args;
+    my $node = shift @args;
+    local @ARGV = @args;
+    return $usage unless $subcmd && $node;
+    return $usage unless GetOptions(\%opts,@opts);
+
+  SWITCH:
+    {
+      $subcmd eq 'create' and do
+	{
+	  return $self->Create(Node=>$node)->GetXML();
+	},last SWTICH;
+
+      $subcmd eq 'delete' and do
+	{
+	  return $self->Delete(Node=>$node)->GetXML();
+	},last SWTICH;
+
+      $subcmd eq 'purge' and do
+	{
+	  return $self->Purge(Node=>$node)->GetXML();
+	},last SWTICH;
+
+      $subcmd eq 'entities' and do
+	{
+	  return $self->GetEntities(Node=>$node)->GetXML();
+	},last SWTICH;
+
+      $subcmd eq 'setentity' and do {
+	my $jid = shift @args;
+	return $usage unless $jid;
+	$self->SetEntities(Node=>$node,
+			   Entities => {
+					$jid => { Subscription => $opts{subscription},
+						  Affiliation => $opts{affiliation} }
+				       }
+			   )->GetXML();
+      },last SWITCH;
+
+      $subcmd eq 'publishers' and do {
+
+	my $msg = $self->GetEntities(Node=>$node);
+	my %sub;
+	if ($msg && $msg->GetChild("http://jabber.org/protocol/pubsub"))
+	  {
+	    my $pubsub = $msg->GetChild("http://jabber.org/protocol/pubsub");
+	    foreach my $entity ($pubsub->GetEntities()->GetEntity())
+	      {
+		$sub{$entity->GetJID()} = $entity->GetSubscription();
+	      }
+	  }
+	
+	my %ents;
+	foreach my $pub (@args)
+	  {
+	    $ents{$pub}->{Affiliation} = 'publisher';
+	    $ents{$pub}->{Subscription} = $sub{$pub} || 'none';
+	  }
+
+	return $self->SetEntities(Node=>$node,Entities=>\%ents)->GetXML();
+      },last SWITCH;
+
+      $subcmd eq 'subscribe' and do
+	{
+	  return $self->Subscribe(Node=>$node,SubID=>$opts{subid})->GetXML();
+	},last SWTICH;
+
+      $subcmd eq 'unsubscribe' and do
+	{
+	  return $self->Unsubscribe(Node=>$node,SubID=>$opts{subid})->GetXML();
+	},last SWTICH;
+	
+      $subcmd eq 'help' and do
+	{
+	  return "\n$usage";
+	}
+    };
   }
 
 sub Subscribe
@@ -386,12 +568,12 @@ sub Subscribe
     my $iq = Net::XMPP::IQ->new();
     $iq->SetIQ(type=>'set',
 	       from=>$self->JID,
-	       to=>$opts{Host} || $self->Hostname);
+	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
 
     my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
     my $subscribe = $pubsub->AddSubscribe();
     $subscribe->SetNode($opts{Node});
-    $subscribe->SetJID($opts{JID} || $self->JID);
+    $subscribe->SetJID($opts{JID} || $self->JID->GetJID('base'));
     $subscribe->SetSubID($opts{SubID}) if $opts{SubID};
 
     #warn $iq->GetXML();
@@ -408,12 +590,12 @@ sub Unsubscribe
     my $iq = Net::XMPP::IQ->new();
     $iq->SetIQ(type=>'set',
 	       from=>$self->JID,
-	       to=>$opts{Host} || $self->Hostname);
+	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
 
     my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
     my $subscribe = $pubsub->AddUnsubscribe();
     $subscribe->SetNode($opts{Node});
-    $subscribe->SetJID($opts{JID} || $self->JID);
+    $subscribe->SetJID($opts{JID} || $self->JID->GetJID('base'));
     $subscribe->SetSubID($opts{SubID}) if $opts{SubID};
 
     #warn $iq->GetXML();
@@ -445,6 +627,134 @@ sub Publish
     $msg;
   }
 
+sub Create
+  {
+    my $self = shift;
+    my %opts = @_;
+
+    my $iq = Net::XMPP::IQ->new();
+    $iq->SetIQ(type=>'set',
+	       from=>$self->JID,
+	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
+
+    my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
+    my $create = $pubsub->AddCreate();
+    $create->SetNode($opts{Node});
+
+    #warn $iq->GetXML();
+    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+    #warn $msg->GetXML() if $msg;
+    $msg;
+  }
+
+sub Delete
+  {
+    my $self = shift;
+    my %opts = @_;
+
+    my $iq = Net::XMPP::IQ->new();
+    $iq->SetIQ(type=>'set',
+               from=>$self->JID,
+               to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
+
+    my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
+    my $delete= $pubsub->AddDelete();
+    $delete->SetNode($opts{Node});
+
+    #warn $iq->GetXML();
+    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+    #warn $msg->GetXML() if $msg;
+    $msg;
+  }
+
+sub Purge
+  {
+    my $self = shift;
+    my %opts = @_;
+
+    my $iq = Net::XMPP::IQ->new();
+    $iq->SetIQ(type=>'set',
+               from=>$self->JID,
+               to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
+
+    my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
+    my $purge = $pubsub->AddPurge();
+    $purge->SetNode($opts{Node});
+
+    #warn $iq->GetXML();
+    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+    #warn $msg->GetXML() if $msg;
+    $msg;
+  }
+
+sub GetEntities
+  {
+    my $self = shift;
+    my %opts = @_;
+
+    my $iq = Net::XMPP::IQ->new();
+    $iq->SetIQ(type=>'get',
+               from=>$self->JID,
+               to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
+
+    my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
+    my $entities = $pubsub->AddEntities();
+    $entities->SetNode($opts{Node});
+
+    #warn $iq->GetXML();
+    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+    #warn $msg->GetXML() if $msg;
+    $msg;
+  }
+
+sub SetEntities
+  {
+    my $self = shift;
+    my %opts = @_;
+
+    my $iq = Net::XMPP::IQ->new();
+    $iq->SetIQ(type=>'set',
+               from=>$self->JID,
+               to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
+
+    my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
+    my $entities = $pubsub->AddEntities();
+    $entities->SetNode($opts{Node});
+    die "Entities option must be a HASH" unless ref $opts{Entities} eq 'HASH';
+    foreach my $jid (keys %{$opts{Entities}}) {
+        my $entity = $entities->AddEntity();
+        $entity->SetJID($jid);
+        $entity->SetAffiliation($opts{Entities}->{$jid}->{Affiliation});
+        $entity->SetSubscription($opts{Entities}->{$jid}->{Subscription});
+    }
+
+    #warn $iq->GetXML();
+    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+    #warn $msg->GetXML() if $msg;
+    $msg;
+  }
+
+sub DiscoverNodes
+  {
+    my $self = shift;
+    my %opts = @_;
+
+    my $iq = Net::XMPP::IQ->new();
+
+    $iq->SetIQ(type=>'get',
+	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
+
+    my $query = $iq->NewChild('http://jabber.org/protocol/disco#items');
+    $query->SetNode($opts{Node}) if $opts{Node};
+
+    #warn $iq->GetXML();
+    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+    #warn $msg->GetXML() if $msg;
+    $msg;
+  }
+
+
+
 sub initSubscriptions
   {
     my $self = shift;
@@ -458,41 +768,62 @@ sub initSubscriptions
       }
   }
 
-sub MForm
+sub GetFormFieldValue
   {
-    my ($self,%args) = @_;
-    my $message = Net::XMPP::Message->new();
-    $message->SetTo($args{To});
-    $message->SetFrom($args{From});
-    $message->SetBody('Please complete this form');
-    my $form = $message->NewChild('jabber:x:data');
-    $form->SetTitle('Testform');
-    $form->SetInstructions('apa bakar');
-    my $field = $form->AddField();
-    $field->SetVar('kaka');
-    $field->SetType('text-single');
-    $field->SetLabel('vilken'); 
+    my ($self,$msg,$var,$ns) = @_;
 
-    my $msg = $self->Client->SendAndReceiveWithID($message,$self->{Timeout});
-    $msg->GetXML() if $msg;
+    my $q = $msg->GetIQ($ns || 'http://jevent.it.su.se/NS/command');
+
+    return undef unless $q;
+
+    my $form = $q->GetChild('jabber:x:data');
+    return undef unless $form;
+
+    return undef unless $form->GetType() eq 'submit';
+
+    foreach my $field ($form->GetField())
+      {
+	next unless $field->GetVar() eq $var;x
+	return $field->GetValue();
+      }
+
+    undef;
   }
 
-sub Form
+sub SendForm
   {
     my ($self,%args) = @_;
     my $iq = Net::XMPP::IQ->new();
     $iq->SetIQ(type=>'get',
                from=>$args{From},
                to=>$args{To});
-    my $q = $iq->NewChild('jabber:iq:register');
+
+    my $q = $iq->NewChild($args{NS} || 'http://jevent.it.su.se/NS/command');
     my $form = $q->NewChild('jabber:x:data');
-    $form->SetTitle('Testform');
+    $form->SetTitle($args{Title});
     $form->SetType('form');
-    $form->SetInstructions('apa bakar');
-    my $field = $form->AddField();
-    $field->SetVar('kaka');
-    $field->SetType('text-single');
-    $field->SetLabel('vilken');
+    $form->SetInstructions($args{Instructions});
+    foreach (@{$args{Fields}})
+      {
+	my $field = $form->AddField();
+	$field->SetVar($_);
+	$field->SetType($_->{Type});
+	$field->SetLabel($_->{Label});
+	$field->SetDesc($_->{Desc});
+	$field->SetRequred($_->{Required});
+	my @v = ref $_->{Value} eq 'ARRAY' ? @{$_->{Value}} : ($_->{Value});
+	if ($_->{Type} =~ /-multi/)
+	  {
+	    foreach my $v (@v)
+	      {
+		$field->AddValue($v);
+	      }
+	  }
+	else
+	  {
+	    $field->SetValue($v[0]);
+	  }
+      }
 
     my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
     warn $msg->GetXML() if $msg;
@@ -567,14 +898,14 @@ sub evalCommand
     {
       $cmd eq '?' || $cmd eq 'help' || $cmd eq 'who' and do {
 
-	my $body = $self->Usage."\nCommands: \n";
+	my $cbody = $self->Usage."\nCommands: \n";
 	foreach my $c (keys %{$self->{Commands}})
 	  {
-	    $body .= "$c\n";
+	    $cbody .= "$c\n";
 	  }
 	return $self->Client->MessageSend(to=>$from->GetJID("base"),
 					  type=>$type,
-					  body=>$body);
+					  body=>$cbody);
       },last BUILTIN;
     }
 
@@ -590,11 +921,11 @@ sub evalCommand
 		
 	  }
 	
-	my $result = &{$self->{Commands}->{$cmd}}($self,$from->GetJID("base"),$type,$cmd,@args);
+	my $cresult = &{$self->{Commands}->{$cmd}}($self,$from->GetJID("base"),$type,$cmd,@args);
 
 	return $self->Client->MessageSend(to=>$from->GetJID("base"),
 					  type=>$type,
-					  body=>$result) if $result;
+					  body=>$cresult) if $cresult;
       }
     else
       {
@@ -631,13 +962,14 @@ sub spocpSubscriptionAuthorization
 
 sub PreExecute() { }
 
+sub PostExecute() { }
+
 sub Run
   {
     my $self = shift;
+    my $code = shift if ref $_[0] eq 'CODE';
     my %opts = @_;
 
-    $self->{Subscribe} = $opts{Subscribe} if ref $opts{Subscribe};
-    $self->{StartCB} = \&initSubscriptions unless ref $self->{StartCB} eq 'CODE';
     $self->{MessageCB} = \&evalCommand unless ref $self->{MessageCB} eq 'CODE';
     $self->{CommandAuthorization} = \&spocpCommandAuthorization
       unless ref $self->{CommandAuthorization} eq 'CODE';
@@ -645,20 +977,45 @@ sub Run
       unless ref $self->{SubscriptionAuthorization} eq 'CODE';
     $self->{Data} = $opts{Data} if $opts{Data};
 
-    $self->PreExecute();
+    unless ($code)
+      {
+	$self->PreExecute();
+	$self->Client->Execute(hostname=>$self->Hostname,
+			       username=>$self->Username,
+			       password=>$self->Password,
+			       tls=>$self->{UseTLS},
+			       tlsoptions=>{
+					    SSL_verify_mode=>$self->{SSLVerify}||0x01 , #require
+					    SSL_ca_file=>$self->{CAFile}||'/etc/ssl/ca.crt',
+					    SSL_ca_dir=>$self->{CADir}
+					   },
+			       resource=>$self->Resource,
+			       processtimeout=>$self->{ProcessTimeout} || 1,
+			       register=>0);
+	$self->PreExecute();
+      }
+    else
+      {
+	my $status =
+	  $self->Client->Connect(hostname=>$self->Hostname,
+				 tls=>$self->{UseTLS},
+				 tlsoptions=>{
+					      SSL_verify_mode=>$self->{SSLVerify}||0x01 , #require
+					      SSL_ca_file=>$self->{CAFile}||'/etc/ssl/ca.crt',
+					      SSL_ca_dir=>$self->{CADir}
+					     },
+				 resource=>$self->Resource,
+				 processtimeout=>$self->{ProcessTimeout} || 1,
+				 register=>0);
+	die "Unable to connect" unless $status;
+	$self->Client->AuthSend(username=>$self->Username,
+				password=>$self->Password,
+				resource=>$self->Resource);
 
-    $self->Client->Execute(hostname=>$self->Hostname,
-			   username=>$self->Username,
-			   password=>$self->Password,
-			   tls=>$self->{UseTLS},
-			   tlsoptions=>{
-					SSL_verify_mode=>$self->{SSLVerify}||0x01 , #require
-					SSL_ca_file=>$self->{CAFile}||'/etc/ssl/ca.crt',
-					SSL_ca_dir=>$self->{CADir}
-				       },
-			   resource=>$self->Resource,
-			   processtimeout=>$self->{ProcessTimeout} || 1,
-			   register=>0);
+	#warn $self->Client->PresenceSend()->GetXML();
+	
+	return &{$code}($self);
+      }
   }
 
 
@@ -735,9 +1092,7 @@ constructor.
  Timeout              Timeouts for various actions.
 
  StartCB              This CODE is run everytime the agent authenticates
-                      to the server. Normally you don't override this. If
-                      you do you must handle your initial Subscriptions
-                      manually.
+                      to the server.
 
  MessageCB            This CODE is run for each incoming message. If you
                       override this you cannot implement Commands.
