@@ -443,7 +443,7 @@ sub init
 						   calls => [ qw/Get Add/ ],
 						   type => 'child',
 						   path => 'item',
-						   child => { ns => '__netxmpp__:disco:items' } 
+						   child => { ns => '__netxmpp__:disco:items' }
 						  },
 					  Node => { path => '@node' }
 					 });
@@ -454,6 +454,38 @@ sub init
 					  JID => { path => '@jid', type=>'jid' },
 					  Name => { path => '@name' },
 					  Node => { path => '@node' }
+					 });
+
+    $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/disco#info',
+				tag=>'query',
+				xpath => {
+					  Identity => {
+						       calls => [ qw/Get Add/ ],
+						       type => 'child',
+						       path => 'identity',
+						       child => { ns => '__netxmpp__:disco:info:identity' }
+						  },
+					  Feature => {
+						      calls => [ qw/Get Add/ ],
+						      type => 'child',
+						      path => 'feature',
+						      child => { ns => '__netxmpp__:disco:info:feature' },
+						     },
+					  Node => { path => '@node' }
+					 });
+
+    $self->Client->AddNamespace(ns=>'__netxmpp__:disco:info:identity',
+				tag => 'identity',
+				xpath => {
+					  Category => { path => '@category' },
+					  Type => { path => '@type' },
+					  Name => { path => '@name' }
+					 });
+
+    $self->Client->AddNamespace(ns=>'__netxmpp__:disco:info:feature',
+				tag => 'feature',
+				xpath => {
+					  Var => { path => '@var' },
 					 });
 
     $self;
