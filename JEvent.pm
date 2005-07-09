@@ -1032,11 +1032,9 @@ sub Connect
 			     processtimeout=>$self->{ProcessTimeout} || 1,
 			     register=>0);
     die "Unable to connect" unless $status;
-    $status = $self->Client->AuthSend(username=>$self->Username,
-				      password=>$self->Password,
-				      resource=>$self->Resource);
-    die "Unable to authenticate" unless $status;
-
+    $self->Client->AuthSend(username=>$self->Username,
+			    password=>$self->Password,
+			    resource=>$self->Resource);
     $self;
   }
 
