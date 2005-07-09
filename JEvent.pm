@@ -786,6 +786,25 @@ sub DiscoverNodes
   }
 
 
+sub DiscoverNode
+  {
+    my $self = shift;
+    my %opts = @_;
+
+    my $iq = Net::XMPP::IQ->new();
+
+    $iq->SetIQ(type=>'get',
+	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
+
+    my $query = $iq->NewChild('http://jabber.org/protocol/disco#info');
+    $query->SetNode($opts{Node}) if $opts{Node};
+
+    #warn $iq->GetXML();
+    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+    #warn $msg->GetXML() if $msg;
+    $msg;
+  }
+
 
 sub initSubscriptions
   {
