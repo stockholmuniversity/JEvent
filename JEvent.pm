@@ -1015,6 +1015,36 @@ sub PreExecute() { }
 
 sub PostExecute() { }
 
+sub Connect
+  {
+    my $self = shift;
+    my %opts = @_;
+
+    my $status =
+      $self->Client->Connect(hostname=>$self->Hostname,
+			     tls=>$self->{UseTLS},
+			     tlsoptions=>{
+					  SSL_verify_mode=>$self->{SSLVerify}||0x01 , #require
+					  SSL_ca_file=>$self->{CAFile}||'/etc/ssl/ca.crt',
+					  SSL_ca_dir=>$self->{CADir}
+					 },
+			     resource=>$self->Resource,
+			     processtimeout=>$self->{ProcessTimeout} || 1,
+			     register=>0);
+    die "Unable to connect" unless $status;
+    $status = $self->Client->AuthSend(username=>$self->Username,
+				      password=>$self->Password,
+				      resource=>$self->Resource);
+    die "Unable to authenticate" unless $status;
+
+    $self;
+  }
+
+sub Disconnect
+  {
+    $_[0]->Client->Disconnect();
+  }
+
 sub Run
   {
     my $self = shift;
@@ -1065,7 +1095,11 @@ sub Run
 
 	#warn $self->Client->PresenceSend()->GetXML();
 	
-	return &{$code}($self);
+	my $result = &{$code}($self);
+
+	$self->Client->Disconnect();
+
+	return $result;
       }
   }
 
