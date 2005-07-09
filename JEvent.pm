@@ -376,29 +376,46 @@ sub init
 						    child => { ns => '__netxmpp__:pubsub:item' } }
 					});
 
+    $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/pubsub#owner',
+				tag => 'pubsub',
+				xpath => {
+					  Configure => { calls => [ qw/Get Add/],
+							 type => 'child',
+							 path => 'configure',
+							 child => { ns => '__netxmpp__:pubsub:owner:configure' } }
+					 });
+
+    $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:owner:configure',
+				tag => 'configure',
+				xpath => {
+					  Node => { path => '@node' }
+					 });
+
     $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/pubsub#event',
-				 tag => 'event',
-				 xpath => {
-					   Items => { calls => [ qw/Get Add/],
+				tag => 'event',
+				xpath => {
+					  Items => { calls => [ qw/Get Add/],
+						     type => 'child',
+						     path => 'items',
+						     child => { ns => '__netxmpp__:pubsub:items' } },
+					  Delete => { calls => [ qw/Get Add/],
 						      type => 'child',
-						      path => 'items',
-						      child => { ns => '__netxmpp__:pubsub:items' } },
-
-					   Delete => { calls => [ qw/Get Add/],
-						       type => 'child',
-						       path => 'delete',
-						       child => { ns => '__netxmpp__:pubsub:delete' } },
-
-                                           Purge => { calls => [ qw/Get Add/],
-                                                       type => 'child',
-                                                       path => 'purge',
-                                                       child => { ns => '__netxmpp__:pubsub:purge' } }
-					  });
+						      path => 'delete',
+						      child => { ns => '__netxmpp__:pubsub:delete' } },
+					  Purge => { calls => [ qw/Get Add/],
+						     type => 'child',
+						     path => 'purge',
+						     child => { ns => '__netxmpp__:pubsub:purge' } }
+					 });
 
     $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/muc',
 				 tag => 'x',
 				 xpath => {
-					   Password => { path => '@password' }
+					   Password => { path => '@password' },
+					   Form => { calls => [ qw/Set Defined Get/ ],
+						     type => 'child',
+						     path => 'x',
+						     child => { ns => 'jabber:x:data' } }
 					  });
 
     $self->Client->AddNamespace(ns=>'jabber:x:conference',
