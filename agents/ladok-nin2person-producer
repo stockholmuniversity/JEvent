@@ -17,7 +17,7 @@ SYNOPSIS
 \t-o\tDirectory where odbc.ini and odbcinst.ini is
 \t-h\tShow this text
 
-Apart from the common ini-arguments this agents expects information
+Apart from the common ini-parameters this agents expects information
 about the connection to LADOK:
 
 [LADOK]
