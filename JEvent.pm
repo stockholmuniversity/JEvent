@@ -881,6 +881,39 @@ sub SendForm
     JEvent::RequestForm(@_);
   }
 
+sub AddCGIForm
+  {
+    my ($self,$q,$cgi,@fields) = @_;
+
+    my @result;
+    foreach my $f (@fields)
+      {
+	push(@result,{Var => $f, Value => [$cgi->param($f)]});
+      }
+
+    return $self->AddForm($q,@result);
+  }
+
+sub AddForm
+  {
+    my ($self,$q,@fields) = @_;
+
+    my $form = $q->NewChild('jabber:x:data');
+    $form->SetType('submit');
+    foreach (@fields)
+      {
+	my $field = $form->AddField();
+	$field->SetVar($_->{Var});
+	my @v = ref $_->{Value} eq 'ARRAY' ? @{$_->{Value}} : ($_->{Value});
+	foreach my $v (@v)
+	  {
+	    $field->AddValue($v);
+	  }
+      }
+
+    $q;
+  }
+
 sub SubmitForm
   {
     my ($self,%args) = @_;
@@ -890,18 +923,7 @@ sub SubmitForm
                to=>$args{To});
 
     my $q = $iq->NewChild($args{NS} || 'http://jabber.org/protocol/commands');
-    my $form = $q->NewChild('jabber:x:data');
-    $form->SetType('submit');
-    foreach (@{$args{Fields}})
-      {
-	my $field = $form->AddField();
-	$field->SetVar($_->{Name});
-	my @v = ref $_->{Value} eq 'ARRAY' ? @{$_->{Value}} : ($_->{Value});
-	foreach my $v (@v)
-	  {
-	    $field->AddValue($v);
-	  }
-      }
+    $self->AddForm($q,@{$args{Fields}});
 
     $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
   }
@@ -961,6 +983,27 @@ sub ConfigureNode
     my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
     #warn $msg->GetXML();
     $msg;
+  }
+
+sub FormFieldVars
+  {
+    my ($self,$form) = @_;
+
+    [map { $_->GetVar() } $form->GetField()];
+  }
+
+sub SubmitCGIForm
+  {
+    my ($self,$q,$fields,@rest) = @_;
+
+
+    my @fspec;
+    foreach my $field (@{$fields})
+      {
+	push(@fspec,{Var=>$field,Value=>[$q->param($field)]});
+      }
+
+    $self->SubmitForm(Fields=>\@fspec,@rest);
   }
 
 sub FormHTML
