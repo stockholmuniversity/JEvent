@@ -840,6 +840,20 @@ sub DiscoverNode
     $msg;
   }
 
+sub GetAffiliations
+  {
+    my ($self,%opts) = @_;
+
+    my $iq = Net::XMPP::IQ->new();
+    $iq->SetIQ(type=>'get',
+	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
+
+    my $pubsub = $iq->NewChild('http://jabber.org/protocol/pubsub');
+    $pubsub->AddAffiliations();
+
+    $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+  }
+
 
 sub initSubscriptions
   {
