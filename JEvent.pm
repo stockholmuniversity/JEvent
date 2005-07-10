@@ -969,11 +969,13 @@ sub FormHTML
     foreach my $field ($form->GetField())
       {
 	$out .= "<tr class=\"xmpp-form-field\">\n";
-	$out .= "<td class=\"xmpp-form-label\">".$field->GetLabel()."</td>";
+	my $label = $field->GetLabel() || $field->GetVar();
+	$out .= "<td class=\"xmpp-form-label\">$label</td>";
 	$out .= "<td class=\"xmpp-form-widget\">";
 	my $type = $field->GetType();
 	my $var = $field->GetVar();
 	my @value = $field->GetValue();
+
       TYPE:
 	{
 	  $type eq 'fixed' and do
@@ -983,7 +985,7 @@ sub FormHTML
 
 	  $type eq 'hidden' and do
 	    {
-	      $out .= $q->hidden(-name=>$var,-value=>$value[0]);
+	      $out .= $q->hidden(-name=>$var,-value=>\@value);
 	    },last TYPE;
 
 	  $type eq 'text-private' and do
