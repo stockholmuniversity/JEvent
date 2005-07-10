@@ -972,7 +972,7 @@ sub FormHTML
 
 	$out .= "<tr class=\"xmpp-form-field\">\n";
 	my $label = $field->GetLabel() || $field->GetVar();
-	if ($type eq 'hidden')
+	if ($type ne 'hidden')
 	  {
 	    $out .= "<td class=\"xmpp-form-label\">$label</td>";
 	    $out .= "<td class=\"xmpp-form-widget\">";
