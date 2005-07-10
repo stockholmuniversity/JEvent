@@ -955,9 +955,9 @@ sub ConfigureNode
     my $configure = $pubsub->AddConfigure();
     $configure->SetNode($opts{Node});
 
-    warn $iq->GetXML();
+    #warn $iq->GetXML();
     my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
-    warn $msg->GetXML();
+    #warn $msg->GetXML();
     $msg;
   }
 
