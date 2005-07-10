@@ -388,7 +388,11 @@ sub init
     $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:owner:configure',
 				tag => 'configure',
 				xpath => {
-					  Node => { path => '@node' }
+					  Node => { path => '@node' },
+					  Form => { calls => [ qw /Get Add Defined/ ],
+						    type => 'child',
+						    path => 'x',
+						    child => { ns => 'jabber:x:data' } }
 					 });
 
     $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/pubsub#event',
