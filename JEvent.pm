@@ -238,14 +238,14 @@ sub init
                                                      child => { ns => '__netxmpp__:pubsub:delete' } },
 
                                          Purge => { calls => [qw/Get Add Defined/],
-                                                     type => 'child',
-                                                     path => 'purge',
-                                                     child => { ns => '__netxmpp__:pubsub:purge' } },
+						    type => 'child',
+						    path => 'purge',
+						    child => { ns => '__netxmpp__:pubsub:purge' } },
 
                                          Entities => { calls => [qw/Get Add Defined/],
-                                                     type => 'child',
-                                                     path => 'entities',
-                                                     child => { ns => '__netxmpp__:pubsub:entities' } },
+						       type => 'child',
+						       path => 'entities',
+						       child => { ns => '__netxmpp__:pubsub:entities' } },
 
 					 Items => { calls => [qw/Get Set/],
 						    type => 'child',
