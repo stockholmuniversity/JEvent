@@ -418,7 +418,11 @@ sub init
 					  Affiliations => { calls => [ qw/Get Add/ ],
 							    type => 'child',
 							    path => 'affiliations',
-							    child => { ns => '__netxmpp__:pubsub:affiliations' } }
+							    child => { ns => '__netxmpp__:pubsub:affiliations' } },
+					  Entities => { calls => [qw/Get Add Defined/],
+							type => 'child',
+							path => 'entities',
+							child => { ns => '__netxmpp__:pubsub:entities' } }
 					 });
 
     $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/muc',
