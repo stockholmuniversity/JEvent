@@ -412,6 +412,15 @@ sub init
 						     child => { ns => '__netxmpp__:pubsub:purge' } }
 					 });
 
+    $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/pubsub#event',
+				tag=>'pubsub',
+				xpath => {
+					  Affiliations => { calls => [ qw/Get Add/ ],
+							    type => 'child',
+							    path => 'affiliations',
+							    child => { ns => '__netxmpp__:pubsub:affiliations' } }
+					 });
+
     $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/muc',
 				 tag => 'x',
 				 xpath => {
