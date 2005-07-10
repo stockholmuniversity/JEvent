@@ -448,10 +448,22 @@ sub init
     $self->Client->AddNamespace(ns=>'__netxmpp__:form:field',
                                 tag=>'field',
                                 xpath => {
-                                           Type => { path => '@type' },
-                                           Label => { path => '@label' },
-                                           Var => { path => '@var' }
+					  Type => { path => '@type' },
+					  Label => { path => '@label' },
+					  Var => { path => '@var' },
+					  Value => { path => 'value' },
+					  Option => { calls => [ qw /Get Add/ ],
+						      type => 'child',
+						      path => 'option',
+						      child => { ns => '__netxmpp__:form:field:option' }}
                                          });
+
+    $self->Client->AddNamespace(ns=>'__netxmpp__:form:field:option',
+				tag=>'option',
+				xpath => {
+					  Value => { path => 'value' },
+					  Label => { path => '@label' }
+					 });
 
     $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/disco#items',
 				tag=>'query',
@@ -904,7 +916,7 @@ sub RequestForm
     foreach (@{$args{Fields}})
       {
 	my $field = $form->AddField();
-	$field->SetVar($_->{Name});
+	$field->SetVar($_->{Var});
 	$field->SetType($_->{Type});
 	$field->SetLabel($_->{Label});
 	$field->SetDesc($_->{Desc});
@@ -939,6 +951,74 @@ sub ConfigureNode
     $configure->SetNode($opts{Node});
 
     $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+  }
+
+sub FormHTML
+  {
+    my ($self,$form,$q,%opts) = @_;
+
+    my $out = "<table class=\"xmpp-form\">\n";
+    foreach my $field ($form->GetField())
+      {
+	$out .= "<tr class=\"xmpp-form-field\">\n";
+	$out .= "<td class=\"xmpp-form-label\">".$field->GetLabel()."</td>";
+	$out .= "<td class=\"xmpp-form-widget\">";
+	my $type = $field->GetType();
+	my $var = $field->GetVar();
+	my @value = $field->GetValue();
+      TYPE:
+	{
+	  $type eq 'fixed' and do
+	    {
+	      $out .= join("<br/>",@value);
+	    },last TYPE;
+
+	  $type eq 'hidden' and do
+	    {
+	      $out .= $q->hidden(-name=>$var,-value=>$value[0]);
+	    },last TYPE;
+
+	  $type eq 'text-private' and do
+	    {
+	      $out .= $q->password_field(-name=>$var,-value=>$value[0],size=>30);
+	    },last TYPE;
+
+	  $type eq 'boolean' and do
+	    {
+	      $out .= $q->checkbox(-name=>$var,-checked=>$value[0],-value=>1);
+	    },last TYPE;
+
+	  $type eq 'text-single' || $type eq 'jid-single' and do
+	    {
+	      $out .= $q->textfield(-name=>$var,-default=>$value[0],-size=>30);
+	    },last TYPE;
+
+	  $type eq 'text-multiple' || $type eq 'jid-multiple' and do
+	    {
+	      $out .= $q->textarea(-name=>$var,-default=>join("\n",@value),-rows=>6,-cols=>40);
+	    },last TYPE;
+
+	  $type eq 'list-single' || $type eq 'list-multiple' and do
+	    {
+	      my %lab;
+	      my @opt;
+	      foreach my $o ($field->GetOption())
+		{
+		  my $ov = $o->GetValue();
+		  push(@opt,$ov);
+		  $lab{$ov} = $o->GetLabel() || $ov;
+		}
+	      $out .= $q->popup_menu(-name=>$var,
+				     -values=>\@opt,
+				     -labels=>\%lab,
+				     -default=>$field->GetValue());
+	    },last TYPE;
+	};
+	$out .= "</td>\n";
+	$out .= "</tr>\n";
+      }
+
+    $out;
   }
 
 sub Usage
