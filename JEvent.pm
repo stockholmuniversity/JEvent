@@ -996,7 +996,7 @@ sub FormHTML
 
 	  $type eq 'text-private' and do
 	    {
-	      $out .= $q->password_field(-name=>$var,-value=>$value[0],size=>30);
+	      $out .= $q->password_field(-name=>$var,-value=>$value[0],size=>20);
 	    },last TYPE;
 
 	  $type eq 'boolean' and do
@@ -1006,7 +1006,7 @@ sub FormHTML
 
 	  $type eq 'text-single' || $type eq 'jid-single' and do
 	    {
-	      $out .= $q->textfield(-name=>$var,-default=>$value[0],-size=>30);
+	      $out .= $q->textfield(-name=>$var,-default=>$value[0],-size=>20);
 	    },last TYPE;
 
 	  $type eq 'text-multiple' || $type eq 'jid-multiple' and do
