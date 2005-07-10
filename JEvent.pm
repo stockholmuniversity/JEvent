@@ -926,7 +926,7 @@ sub RequestForm
     $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
   }
 
-sub ConfigureNodeRequest
+sub ConfigureNode
   {
     my ($self,%opts) = @_;
 
