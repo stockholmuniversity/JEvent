@@ -455,7 +455,7 @@ sub init
 					  Type => { path => '@type' },
 					  Label => { path => '@label' },
 					  Var => { path => '@var' },
-					  Value => { path => 'value' },
+					  Value => { path => 'value/text()' },
 					  Option => { calls => [ qw /Get Add/ ],
 						      type => 'child',
 						      path => 'option',
@@ -465,7 +465,7 @@ sub init
     $self->Client->AddNamespace(ns=>'__netxmpp__:form:field:option',
 				tag=>'option',
 				xpath => {
-					  Value => { path => 'value' },
+					  Value => { path => 'value/text()' },
 					  Label => { path => '@label' }
 					 });
 
