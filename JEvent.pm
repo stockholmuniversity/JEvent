@@ -944,13 +944,17 @@ sub ConfigureNode
 
     my $iq = Net::XMPP::IQ->new();
     $iq->SetIQ(type=>'get',
+	       from=>$self->JID,
 	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
 
     my $pubsub = $iq->NewChild('http://jabber.org/protocol/pubsub#owner');
     my $configure = $pubsub->AddConfigure();
     $configure->SetNode($opts{Node});
 
-    $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+    warn $iq->GetXML();
+    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+    warn $msg->GetXML();
+    $msg;
   }
 
 sub FormHTML
