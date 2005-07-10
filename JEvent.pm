@@ -456,6 +456,8 @@ sub init
 					  Label => { path => '@label' },
 					  Var => { path => '@var' },
 					  Value => { path => 'value/text()' },
+					  Desc => { path => 'desc/text()' },
+					  Required => { path => 'required' },
 					  Option => { calls => [ qw /Get Add/ ],
 						      type => 'child',
 						      path => 'option',
@@ -969,11 +971,11 @@ sub FormHTML
     foreach my $field ($form->GetField())
       {
 	my $type = $field->GetType();
-
-	$out .= "<tr class=\"xmpp-form-field\">\n";
 	my $label = $field->GetLabel() || $field->GetVar();
+	
 	unless ($type eq 'hidden')
 	  {
+	    $out .= "<tr class=\"xmpp-form-field\">\n";
 	    $out .= "<td class=\"xmpp-form-label\">$label</td>";
 	    $out .= "<td class=\"xmpp-form-widget\">";
 	  }
@@ -1028,8 +1030,12 @@ sub FormHTML
 				     -default=>$field->GetValue());
 	    },last TYPE;
 	};
-	$out .= "</td>\n" unless $type eq 'hidden';
-	$out .= "</tr>\n";
+
+	unless ($type eq 'hidden')
+	  {
+	    $out .= "</td>\n";
+	    $out .= "</tr>\n";
+	  }
       }
 
     $out;
