@@ -968,11 +968,15 @@ sub FormHTML
     my $out = "<table class=\"xmpp-form\">\n";
     foreach my $field ($form->GetField())
       {
+	my $type = $field->GetType();
+
 	$out .= "<tr class=\"xmpp-form-field\">\n";
 	my $label = $field->GetLabel() || $field->GetVar();
-	$out .= "<td class=\"xmpp-form-label\">$label</td>";
-	$out .= "<td class=\"xmpp-form-widget\">";
-	my $type = $field->GetType();
+	if ($type eq 'hidden')
+	  {
+	    $out .= "<td class=\"xmpp-form-label\">$label</td>";
+	    $out .= "<td class=\"xmpp-form-widget\">";
+	  }
 	my $var = $field->GetVar();
 	my @value = $field->GetValue();
 
@@ -995,7 +999,7 @@ sub FormHTML
 
 	  $type eq 'boolean' and do
 	    {
-	      $out .= $q->checkbox(-name=>$var,-checked=>$value[0],-value=>1);
+	      $out .= $q->checkbox(-name=>$var,-label=>'',-checked=>$value[0],-value=>1);
 	    },last TYPE;
 
 	  $type eq 'text-single' || $type eq 'jid-single' and do
@@ -1024,7 +1028,7 @@ sub FormHTML
 				     -default=>$field->GetValue());
 	    },last TYPE;
 	};
-	$out .= "</td>\n";
+	$out .= "</td>\n" if $type eq 'hidden';
 	$out .= "</tr>\n";
       }
 
