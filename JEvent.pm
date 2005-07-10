@@ -1038,6 +1038,8 @@ sub FormHTML
 	  }
       }
 
+    $out .= "</table>\n";
+
     $out;
   }
 
