@@ -860,13 +860,43 @@ sub GetFormFieldValue
 
 sub SendForm
   {
+    JEvent::RequestForm(@_);
+  }
+
+sub SubmitForm
+  {
+    my ($self,%args) = @_;
+    my $iq = Net::XMPP::IQ->new();
+    $iq->SetIQ(type=>'set',
+               from=>$args{From},
+               to=>$args{To});
+
+    my $q = $iq->NewChild($args{NS} || 'http://jabber.org/protocol/commands');
+    my $form = $q->NewChild('jabber:x:data');
+    $form->SetType('submit');
+    foreach (@{$args{Fields}})
+      {
+	my $field = $form->AddField();
+	$field->SetVar($_->{Name});
+	my @v = ref $_->{Value} eq 'ARRAY' ? @{$_->{Value}} : ($_->{Value});
+	foreach my $v (@v)
+	  {
+	    $field->AddValue($v);
+	  }
+      }
+
+    $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+  }
+
+sub RequestForm
+  {
     my ($self,%args) = @_;
     my $iq = Net::XMPP::IQ->new();
     $iq->SetIQ(type=>'get',
                from=>$args{From},
                to=>$args{To});
 
-    my $q = $iq->NewChild($args{NS} || 'http://jevent.it.su.se/NS/command');
+    my $q = $iq->NewChild($args{NS} || 'http://jabber.org/protocol/commands');
     my $form = $q->NewChild('jabber:x:data');
     $form->SetTitle($args{Title});
     $form->SetType('form');
@@ -874,7 +904,7 @@ sub SendForm
     foreach (@{$args{Fields}})
       {
 	my $field = $form->AddField();
-	$field->SetVar($_);
+	$field->SetVar($_->{Name});
 	$field->SetType($_->{Type});
 	$field->SetLabel($_->{Label});
 	$field->SetDesc($_->{Desc});
@@ -893,9 +923,22 @@ sub SendForm
 	  }
       }
 
-    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
-    warn $msg->GetXML() if $msg;
-    $msg;
+    $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+  }
+
+sub ConfigureNodeRequest
+  {
+    my ($self,%opts) = @_;
+
+    my $iq = Net::XMPP::IQ->new();
+    $iq->SetIQ(type=>'get',
+	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
+
+    my $pubsub = $iq->NewChild('http://jabber.org/protocol/pubsub#owner');
+    my $configure = $pubsub->AddConfigure();
+    $configure->SetNode($opts{Node});
+
+    $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
   }
 
 sub Usage
