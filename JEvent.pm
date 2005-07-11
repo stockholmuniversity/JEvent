@@ -881,6 +881,28 @@ sub initSubscriptions
       }
   }
 
+sub ParentNode
+  {
+    my ($self,$n) = @_;
+
+    my @p = split '/',$n;
+    my $len = scalar @p;
+    join('/',@p[0..$len-2]);
+  }
+
+sub NodePath
+  {
+    my ($self,$n) = @_;
+
+    my @path;
+    my @p = split '/',$n;
+    for (my $i = 0; $i < @p; $i++)
+      {
+	push(@path,join('/',@p[0..$i]));
+      }
+    @path;
+  }
+
 sub GetFormFieldValue
   {
     my ($self,$msg,$var,$ns) = @_;
