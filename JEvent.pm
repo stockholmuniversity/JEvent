@@ -681,7 +681,7 @@ sub Publish
 		       my $publish = $_[0]->AddPublish();
 		       $publish->SetNode($_[1]->{Node} || $_[2]->cfg('PubSub','Node'));
 		       my $item = $publish->AddItem();
-		       $item->SetId(defined $_[1]->{Id} ? $_[1]->{Id} : $_[2]->gen_uuid);
+		       $item->SetId($_[1]->{Id} ? $_[1]->{Id} : $_[2]->gen_uuid);
 		       $item->SetContent($_[1]->{Content});
 		     },
 		     @opts);
