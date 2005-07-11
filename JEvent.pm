@@ -642,243 +642,158 @@ EOH
 
 sub Subscribe
   {
-    my $self = shift;
-    my %opts = @_;
+    my ($self,@opts) = @_;
 
-    my $iq = Net::XMPP::IQ->new();
-    $iq->SetIQ(type=>'set',
-	       from=>$self->JID,
-	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
-
-    my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
-    my $subscribe = $pubsub->AddSubscribe();
-    $subscribe->SetNode($opts{Node});
-    $subscribe->SetJID($opts{JID} || $self->JID->GetJID('base'));
-    $subscribe->SetSubID($opts{SubID}) if $opts{SubID};
-
-    #warn $iq->GetXML();
-    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
-    #warn $msg->GetXML() if $msg;
-    $msg;
+    $self->IQRequest(Type=>'set',
+		     Request=>sub {
+		       my $subscribe = $_[0]->AddSubscribe();
+		       $subscribe->SetNode($_[1]->{Node});
+		       $subscribe->SetJID($_[1]->{JID} || $_[2]->JID->GetJID('base'));
+		       $subscribe->SetSubID($_[1]->{SubID}) if $_[1]->{SubID};
+		     },
+		     @opts);
   }
 
 sub Unsubscribe
   {
-    my $self = shift;
-    my %opts = @_;
+    my ($self,@opts) = @_;
 
-    my $iq = Net::XMPP::IQ->new();
-    $iq->SetIQ(type=>'set',
-	       from=>$self->JID,
-	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
-
-    my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
-    my $subscribe = $pubsub->AddUnsubscribe();
-    $subscribe->SetNode($opts{Node});
-    $subscribe->SetJID($opts{JID} || $self->JID->GetJID('base'));
-    $subscribe->SetSubID($opts{SubID}) if $opts{SubID};
-
-    #warn $iq->GetXML();
-    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
-    #warn $msg->GetXML() if $msg;
-    $msg;
+    $self->IQRequest(Type=>'set',
+		     Request=>sub {
+		       my $subscribe = $_[0]->AddUnsubscribe();
+		       $subscribe->SetNode($_[1]->{Node});
+		       $subscribe->SetJID($_[1]->{JID} || $_[2]->JID->GetJID('base'));
+		       $subscribe->SetSubID($_[1]->{SubID}) if $_[1]->{SubID};
+		     },
+		     @opts);
   }
 
 sub Publish
   {
-    my $self = shift;
-    my %opts = @_;
+    my ($self,@opts) = @_;
 
-    my $iq = Net::XMPP::IQ->new();
-    $iq->SetIQ(type=>'set',
-	       from=>$self->JID,
-	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
-
-    my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
-    my $publish = $pubsub->AddPublish();
-    $publish->SetNode($opts{Node} || $self->cfg('PubSub','Node'));
-    my $item = $publish->AddItem();
-    $item->SetId(defined $opts{Id} ? $opts{Id} : $self->gen_uuid);
-    $item->SetContent($opts{Content});
-
-    #warn $iq->GetXML();
-    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
-    #warn $msg->GetXML() if $msg;
-    $msg;
+    $self->IQRequest(Type=>'set',
+		     Request=>sub {
+		       my $publish = $_[0]->AddPublish();
+		       $publish->SetNode($_[1]->{Node} || $_[2]->cfg('PubSub','Node'));
+		       my $item = $publish->AddItem();
+		       $item->SetId(defined $_[1]->{Id} ? $_[1]->{Id} : $_[2]->gen_uuid);
+		       $item->SetContent($_[1]->{Content});
+		     },
+		     @opts);
   }
 
 sub Create
   {
-    my $self = shift;
-    my %opts = @_;
+    my ($self,@opts) = @_;
 
-    my $iq = Net::XMPP::IQ->new();
-    $iq->SetIQ(type=>'set',
-	       from=>$self->JID,
-	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
-
-    my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
-    my $create = $pubsub->AddCreate();
-    $create->SetNode($opts{Node});
-
-    #warn $iq->GetXML();
-    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
-    #warn $msg->GetXML() if $msg;
-    $msg;
+    $self->IQRequest(Type=>'set',
+		     Request=>sub {
+		       my $create = $_[0]->AddCreate();
+		       $create->SetNode($_[1]->{Node})
+		     },
+		     @opts);
   }
 
 sub Delete
   {
-    my $self = shift;
-    my %opts = @_;
+    my ($self,@opts) = @_;
 
-    my $iq = Net::XMPP::IQ->new();
-    $iq->SetIQ(type=>'set',
-               from=>$self->JID,
-               to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
-
-    my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
-    my $delete= $pubsub->AddDelete();
-    $delete->SetNode($opts{Node});
-
-    #warn $iq->GetXML();
-    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
-    #warn $msg->GetXML() if $msg;
-    $msg;
+    $self->IQRequest(Type=>'set',
+		     Request=>sub {
+		       my $delete = $_[0]->AddDelete();
+		       $delete->SetNode($_[1]->{Node})
+		     },
+		     @opts);
   }
 
 sub Purge
   {
-    my $self = shift;
-    my %opts = @_;
+    my ($self,@opts) = @_;
 
-    my $iq = Net::XMPP::IQ->new();
-    $iq->SetIQ(type=>'set',
-               from=>$self->JID,
-               to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
-
-    my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
-    my $purge = $pubsub->AddPurge();
-    $purge->SetNode($opts{Node});
-
-    #warn $iq->GetXML();
-    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
-    #warn $msg->GetXML() if $msg;
-    $msg;
+    $self->IQRequest(Type=>'set',
+		     Request=>sub {
+		       my $purge = $_[0]->AddPurge();
+		       $purge->SetNode($_[1]->{Node})
+		     },
+		     @opts);
   }
 
 sub GetEntities
   {
-    my $self = shift;
-    my %opts = @_;
+    my ($self,@opts) = @_;
 
-    my $iq = Net::XMPP::IQ->new();
-    $iq->SetIQ(type=>'get',
-               from=>$self->JID,
-               to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
-
-    my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
-    my $entities = $pubsub->AddEntities();
-    $entities->SetNode($opts{Node});
-
-    #warn $iq->GetXML();
-    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
-    #warn $msg->GetXML() if $msg;
-    $msg;
+    $self->IQRequest(Request=>sub {
+		       my $entities = $_[0]->AddEntities();
+		       $entities->SetNode($_[1]->{Node})
+		     },
+		     @opts);
   }
 
 sub SetEntities
   {
-    my $self = shift;
-    my %opts = @_;
+    my ($self,@opts) = @_;
 
-    my $iq = Net::XMPP::IQ->new();
-    $iq->SetIQ(type=>'set',
-               from=>$self->JID,
-               to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
-
-    my $pubsub = $iq->NewChild("http://jabber.org/protocol/pubsub");
-    my $entities = $pubsub->AddEntities();
-    $entities->SetNode($opts{Node});
-    die "Entities option must be a HASH" unless ref $opts{Entities} eq 'HASH';
-    foreach my $jid (keys %{$opts{Entities}}) {
-        my $entity = $entities->AddEntity();
-        $entity->SetJID($jid);
-        $entity->SetAffiliation($opts{Entities}->{$jid}->{Affiliation});
-        $entity->SetSubscription($opts{Entities}->{$jid}->{Subscription});
-    }
-
-    #warn $iq->GetXML();
-    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
-    #warn $msg->GetXML() if $msg;
-    $msg;
+    $self->IQRequest(Type=>'set',
+		     Request=>sub {
+		       my $entities = $_[0]->AddEntities();
+		       $entities->SetNode($_[1]->{Node});
+		       die "Entities option must be a HASH" unless ref $_[1]->{Entities} eq 'HASH';
+		       foreach my $jid (keys %{$_[1]->{Entities}}) {
+			 my $entity = $entities->AddEntity();
+			 $entity->SetJID($jid);
+			 $entity->SetAffiliation($_[1]->{Entities}->{$jid}->{Affiliation});
+			 $entity->SetSubscription($_[1]->{Entities}->{$jid}->{Subscription});
+		       }
+		     },
+		     @opts);
   }
 
 sub DiscoverNodes
   {
-    my $self = shift;
-    my %opts = @_;
+    my ($self,@opts) = @_;
 
-    my $iq = Net::XMPP::IQ->new();
-
-    $iq->SetIQ(type=>'get',
-	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
-
-    my $query = $iq->NewChild('http://jabber.org/protocol/disco#items');
-    $query->SetNode($opts{Node}) if $opts{Node};
-
-    #warn $iq->GetXML();
-    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
-    #warn $msg->GetXML() if $msg;
-    $msg;
+    $self->IQRequest(NS=>'http://jabber.org/protocol/disco#items',
+		     Request=>sub { $_[0]->SetNode($_[1]->{Node}) if $_[1]->{Node} },
+		     @opts);
   }
 
 
 sub DiscoverNode
   {
-    my $self = shift;
-    my %opts = @_;
+    my ($self,@opts) = @_;
 
-    my $iq = Net::XMPP::IQ->new();
-
-    $iq->SetIQ(type=>'get',
-	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
-
-    my $query = $iq->NewChild('http://jabber.org/protocol/disco#info');
-    $query->SetNode($opts{Node}) if $opts{Node};
-
-    #warn $iq->GetXML();
-    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
-    #warn $msg->GetXML() if $msg;
-    $msg;
+    $self->IQRequest(NS=>'http://jabber.org/protocol/disco#info',
+		     Request=>sub { $_[0]->SetNode($_[1]->{Node}) if $_[1]->{Node} },
+		     @opts);
   }
 
 sub GetAffiliations
   {
-    my ($self,%opts) = @_;
+    my ($self,@opts) = @_;
 
-    my $iq = Net::XMPP::IQ->new();
-    $iq->SetIQ(type=>'get',
-	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
-
-    my $pubsub = $iq->NewChild('http://jabber.org/protocol/pubsub');
-    $pubsub->AddAffiliations();
-
-    $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+    $self->IQRequest(Request=>sub { $_[0]->GetAffiliations(); },@opts);
   }
 
-
-sub initSubscriptions
+sub ConfigureNode
   {
-    my $self = shift;
+    my ($self,@opts) = @_;
 
-    if (ref $self->{Subscribe} eq 'ARRAY')
-      {
-	foreach my $s (@{$self->{Subscribe}})
-	  {
-	    $self->Subscribe($s->{Host},$s->{Node})
-	  }
-      }
+    $self->IQRequest(NS=>'http://jabber.org/protocol/pubsub#owner',
+		     Request=> sub {
+		       my $c = $_[0]->AddConfigure();
+		       $c->SetNode($_[1]->{Node});
+		     },@opts);
+  }
+
+sub GetItems
+  {
+    my ($self,@opts) = @_;
+
+    $self->IQRequest(Request => sub {
+		       my $elt = $_[0]->AddItems();
+		       $elt->SetNode($_[1]->{Node});
+		     },@opts);
   }
 
 sub ParentNode
@@ -965,16 +880,13 @@ sub AddForm
 
 sub SubmitForm
   {
-    my ($self,%args) = @_;
-    my $iq = Net::XMPP::IQ->new();
-    $iq->SetIQ(type=>'set',
-               from=>$args{From},
-               to=>$args{To});
+    my ($self,@opts) = @_;
+    my %opts = @opts;
 
-    my $q = $iq->NewChild($args{NS} || 'http://jabber.org/protocol/commands');
-    $self->AddForm($q,@{$args{Fields}});
-
-    $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+    $self->IQRequest(Type=>'set',
+		     NS=>$opts{NS} || 'http://jabber.org/protocol/commands',
+		     Request=>sub { $_[2]->AddForm($_[0],@{$_[1]->{Fields}}) },
+		     @opts);
   }
 
 sub RequestForm
@@ -1015,50 +927,20 @@ sub RequestForm
     $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
   }
 
-sub PubSubIQRequest
+sub IQRequest
   {
     my ($self,%opts) = @_;
 
     my $iq = Net::XMPP::IQ->new();
-    $iq->SetIQ(type=>'get',
-	       from=>$self->JID,
-	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
+    $iq->SetIQ(type=>$opts{Type} || 'get',
+	       from=>$opts{From} || $self->GetJID(),
+	       to=>$opts{To} || $opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
 
-    my $pubsub = $iq->NewChild($opts{NS});
-    &{$opts{Request}}($pubsub,\%opts);
+    my $elt = $iq->NewChild($opts{NS} || 'http://jabber.org/protocol/pubsub');
+    &{$opts{Request}}($elt,\%opts,$self);
 
     $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
   }
-
-sub ConfigureNode
-  {
-    my ($self,@opts) = @_;
-    $self->PubSubIQRequest(NS=>'http://jabber.org/protocol/pubsub#owner',
-			   Request=> sub {
-			     my $c = $_[0]->AddConfigure();
-			     $c->SetNode($_[1]->{Node});
-			   },@opts);
-  }
-
-# sub ConfigureNode
-#   {
-#     my ($self,%opts) = @_;
-
-#     my $iq = Net::XMPP::IQ->new();
-#     $iq->SetIQ(type=>'get',
-# 	       from=>$self->JID,
-# 	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
-
-#     my $pubsub = $iq->NewChild('http://jabber.org/protocol/pubsub#owner');
-#     my $configure = $pubsub->AddConfigure();
-#     $configure->SetNode($opts{Node});
-
-#     #warn $iq->GetXML();
-#     my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
-#     #warn $msg->GetXML();
-#     $msg;
-#   }
-
 
 sub FormFieldVars
   {
