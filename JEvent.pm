@@ -933,7 +933,7 @@ sub IQRequest
 
     my $iq = Net::XMPP::IQ->new();
     $iq->SetIQ(type=>$opts{Type} || 'get',
-	       from=>$opts{From} || $self->GetJID(),
+	       from=>$opts{From} || $self->JID()->GetJID('base'),
 	       to=>$opts{To} || $opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
 
     my $elt = $iq->NewChild($opts{NS} || 'http://jabber.org/protocol/pubsub');
