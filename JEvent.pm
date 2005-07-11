@@ -1032,11 +1032,12 @@ sub PubSubIQRequest
 
 sub ConfigureNode
   {
-    $_[0]->PubSubIQRequest(NS=>'http://jabber.org/protocol/pubsub#owner',
+    my ($self,@opts) = @_;
+    $self->PubSubIQRequest(NS=>'http://jabber.org/protocol/pubsub#owner',
 			   Request=> sub {
 			     my $c = $_[0]->AddConfigure();
 			     $c->SetNode($_[1]->{Node});
-			   });
+			   },@opts);
   }
 
 # sub ConfigureNode
