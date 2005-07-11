@@ -247,7 +247,7 @@ sub init
 						       path => 'entities',
 						       child => { ns => '__netxmpp__:pubsub:entities' } },
 
-					 Items => { calls => [qw/Get Set/],
+					 Items => { calls => [qw/Get Add Set/],
 						    type => 'child',
 						    path => 'items',
 						    child => { ns => '__netxmpp__:pubsub:items' } },
