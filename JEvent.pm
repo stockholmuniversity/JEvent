@@ -1015,7 +1015,7 @@ sub RequestForm
     $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
   }
 
-sub ConfigureNode
+sub PubSubIQRequest
   {
     my ($self,%opts) = @_;
 
@@ -1024,15 +1024,40 @@ sub ConfigureNode
 	       from=>$self->JID,
 	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
 
-    my $pubsub = $iq->NewChild('http://jabber.org/protocol/pubsub#owner');
-    my $configure = $pubsub->AddConfigure();
-    $configure->SetNode($opts{Node});
+    my $pubsub = $iq->NewChild($opts{NS});
+    &{$opts{Request}}($pubsub,\%opts);
 
-    #warn $iq->GetXML();
-    my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
-    #warn $msg->GetXML();
-    $msg;
+    $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
   }
+
+sub ConfigureNode
+  {
+    $_[0]->PubSubIQRequest(NS=>'http://jabber.org/protocol/pubsub#owner',
+			   Request=> sub {
+			     my $c = $_[0]->AddConfigure();
+			     $c->SetNode($_[1]->{Node});
+			   });
+  }
+
+# sub ConfigureNode
+#   {
+#     my ($self,%opts) = @_;
+
+#     my $iq = Net::XMPP::IQ->new();
+#     $iq->SetIQ(type=>'get',
+# 	       from=>$self->JID,
+# 	       to=>$opts{Host} || $self->cfg('PubSub','Host') || $self->Hostname);
+
+#     my $pubsub = $iq->NewChild('http://jabber.org/protocol/pubsub#owner');
+#     my $configure = $pubsub->AddConfigure();
+#     $configure->SetNode($opts{Node});
+
+#     #warn $iq->GetXML();
+#     my $msg = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+#     #warn $msg->GetXML();
+#     $msg;
+#   }
+
 
 sub FormFieldVars
   {
