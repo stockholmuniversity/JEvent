@@ -360,21 +360,21 @@ sub init
 					  });
 
     $self->Client->AddNamespace(ns=>'__netxmpp__:pubsub:items',
-				 tag => 'items',
-				 xpath=>{
-					 Node => { path => '@node' },
-					 JID => { type => 'jid' },
-					 SubID => { path => '@subid' },
-					 MaxItems => { path => '@max_items' },
-					 Item => { calls => [ qw/Add/],
+				tag => 'items',
+				xpath=>{
+					Node => { path => '@node' },
+					JID => { type => 'jid' },
+					SubID => { path => '@subid' },
+					MaxItems => { path => '@max_items' },
+					Item => { calls => [ qw/Add/],
+						  type => 'child',
+						  path => 'item',
+						  child => { ns => '__netxmpp__:pubsub:publish:item' } },
+					Items => { calls => [ qw/Get/],
 						   type => 'child',
 						   path => 'item',
-						   child => { ns => '__netxmpp__:pubsub:item' } },
-					 Items => { calls => [ qw/Get/],
-						    type => 'child',
-						    path => 'item',
-						    child => { ns => '__netxmpp__:pubsub:item' } }
-					});
+						   child => { ns => '__netxmpp__:pubsub:publish:item' } }
+				       });
 
     $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/pubsub#owner',
 				tag => 'pubsub',
