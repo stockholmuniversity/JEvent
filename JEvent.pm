@@ -772,7 +772,7 @@ sub GetAffiliations
   {
     my ($self,@opts) = @_;
 
-    $self->IQRequest(Request=>sub { $_[0]->GetAffiliations(); },@opts);
+    $self->IQRequest(Request=>sub { $_[0]->AddAffiliations(); },@opts);
   }
 
 sub ConfigureNode
