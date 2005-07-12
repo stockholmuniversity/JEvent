@@ -681,7 +681,7 @@ sub Publish
 		       my $publish = $_[0]->AddPublish();
 		       $publish->SetNode($_[1]->{Node} || $_[2]->cfg('PubSub','Node'));
 		       my $item = $publish->AddItem();
-		       $item->SetId($_[1]->{Id} ? $_[1]->{Id} : $_[2]->gen_uuid);
+		       $item->SetId($_[1]->{Id} || $_[2]->gen_uuid);
 		       $item->SetContent($_[1]->{Content});
 		     },
 		     @opts);
@@ -721,6 +721,22 @@ sub Purge
 		       $purge->SetNode($_[1]->{Node})
 		     },
 		     @opts);
+  }
+
+sub Retract
+  {
+    my ($self,@opts) = @_;
+
+    $self->IQRequest(Type=>'set',
+		     Request => sub{
+		       my $retract = $_[0]->AddRetract();
+		       $retract->SetNode($_[1]->{Node});
+		       foreach my $id (@{$_[1]->{IDs}})
+			 {
+			   my $item = $retract->AddItem();
+			   $item->SetId($id);
+			 }
+		     },@opts);
   }
 
 sub GetEntities
