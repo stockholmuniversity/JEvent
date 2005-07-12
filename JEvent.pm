@@ -302,7 +302,7 @@ sub init
 				 tag => 'retract',
 				 xpath=>{
 					 Node => { path => '@node' },
-					 Item => { calls => [qw/Get Set/],
+					 Item => { calls => [qw/Get Add Set/],
 						   type => 'child',
 						   path => 'item',
 						   child => { ns => '__netxmpp__:pubsub:retract:item' } }
