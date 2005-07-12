@@ -731,11 +731,8 @@ sub Retract
 		     Request => sub{
 		       my $retract = $_[0]->AddRetract();
 		       $retract->SetNode($_[1]->{Node});
-		       foreach my $id (@{$_[1]->{IDs}})
-			 {
-			   my $item = $retract->AddItem();
-			   $item->SetId($id);
-			 }
+		       my $item = $retract->AddItem();
+		       $item->SetId($_[1]->{Id});
 		     },@opts);
   }
 
