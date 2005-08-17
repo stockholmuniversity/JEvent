@@ -25,7 +25,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(
 	
 );
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 use Net::XMPP qw(Client);
 use Net::XMPP::JID;
@@ -191,12 +191,12 @@ sub init
 
     $self->Client->SetXPathCallBacks("/message/event[\@xmlns=\'http://jabber.org/protocol/pubsub#event\']" => sub
 				      {
-					&{$self->{EventCB}}($self,@_) if ref $self->{EventCB} eq 'CODE';
+					&{$self->{EventCB}}($self,$_[0],$_[1]->GetChild('http://jabber.org/protocol/pubsub#event')) if ref $self->{EventCB} eq 'CODE';
 				      });
     
     $self->Client->SetXPathCallBacks("/message/x[\@xmlns=\'http://jabber.org/protocol/pubsub#event\']" => sub
                                       {
-                                        &{$self->{EventCB}}($self,@_) if ref $self->{EventCB} eq 'CODE';
+                                        &{$self->{EventCB}}($self,$_[0],$_[1]->GetChild('http://jabber.org/protocol/pubsub#event')) if ref $self->{EventCB} eq 'CODE';
                                       });
 
     $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/pubsub',
