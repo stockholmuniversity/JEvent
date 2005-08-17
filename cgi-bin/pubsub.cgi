@@ -167,12 +167,14 @@ eval
 	{
 	  my $iq = Net::XMPP::IQ->new();
 	  $iq->SetIQ(type=>'set',to=>$qhost);
-	  my $configure = $q->AddConfigure();
+	  my $pubsub = $iq->NewChild('http://jabber.org/protocol/pubsub#owner');
+          my $configure = $pubsub->AddConfigure();
 	  $configure->SetNode($qnode);
 	  $je->AddCGIForm($configure,$q,$q->param('_fields'));
+          warn $iq->GetXML();
 	  my $msg = $je->Client->SendAndReceiveWithID($iq,$self->{Timeout});
 	  die $msg if $msg->GetType() eq 'error';
-	  $cmd = 'browse';
+	  $cmd = 'configure';
 	  $message = "<p>Node <strong>$qhost</strong>/$qnode configuration updated</p>";
 	};
 
@@ -399,7 +401,10 @@ eval
 	      $q->print("<p>".$form->GetInstructions()."</p>\n") if $form->GetInstructions();
 	      $q->print($je->FormHTML($form,$q));
 	      $q->print($q->hidden(-name=>'_fields',-value=>$je->FormFieldVars($form)));
-	      $q->print("</br>".$q->submit()."&nbsp;".$q->reset());
+              my $submit = $q->button(-name=>'_button.configure',
+                                      -value=>'Configure Node',
+                                      -onClick=>'this.form._cmd.value=\'doconfigure\'; this.form.submit()');
+	      $q->print("</br>".$submit."&nbsp;".$q->reset());
 	    }
 	},last CASE;
 

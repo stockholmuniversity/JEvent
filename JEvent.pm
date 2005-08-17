@@ -477,13 +477,23 @@ sub init
 					  Type => { path => '@type' },
 					  Label => { path => '@label' },
 					  Var => { path => '@var' },
-					  Value => { path => 'value/text()' },
+                                          Value => { calls => [ qw/Get Add/ ],
+                                                     type => 'child',
+                                                     path => 'value',
+                                                     child => { ns => '__netxmpp__:form:field:value' }},
+                                          Values => { path => 'value/text()' },
 					  Desc => { path => 'desc/text()' },
 					  Required => { path => 'required' },
 					  Option => { calls => [ qw /Get Add/ ],
 						      type => 'child',
 						      path => 'option',
 						      child => { ns => '__netxmpp__:form:field:option' }}
+                                         });
+
+    $self->Client->AddNamespace(ns=>'__netxmpp__:form:field:value',
+			        tag=>'value',
+			        xpath => { 
+                                           Value => { path => 'text()' }
                                          });
 
     $self->Client->AddNamespace(ns=>'__netxmpp__:form:field:option',
@@ -856,7 +866,7 @@ sub GetFormFieldValue
     foreach my $field ($form->GetField())
       {
 	next unless $field->GetVar() eq $var;
-	return $field->GetValue();
+	return $field->GetValues();
       }
 
     undef;
@@ -874,7 +884,7 @@ sub AddCGIForm
     my @result;
     foreach my $f (@fields)
       {
-	push(@result,{Var => $f, Value => [$cgi->param($f)]});
+	push(@result,{Var => $f, Value => [$cgi->param($f) || 0]});
       }
 
     return $self->AddForm($q,@result);
@@ -888,12 +898,13 @@ sub AddForm
     $form->SetType('submit');
     foreach (@fields)
       {
+        my @v = ref $_->{Value} eq 'ARRAY' ? @{$_->{Value}} : ($_->{Value});
+        next unless @v;
 	my $field = $form->AddField();
 	$field->SetVar($_->{Var});
-	my @v = ref $_->{Value} eq 'ARRAY' ? @{$_->{Value}} : ($_->{Value});
 	foreach my $v (@v)
 	  {
-	    $field->AddValue($v);
+	    $field->AddValue()->SetValue($v);
 	  }
       }
 
@@ -922,7 +933,7 @@ sub RequestForm
     my $q = $iq->NewChild($args{NS} || 'http://jabber.org/protocol/commands');
     my $form = $q->NewChild('jabber:x:data');
     $form->SetTitle($args{Title});
-    $form->SetType('form');
+    $form->SetType($args{type} || 'form');
     $form->SetInstructions($args{Instructions});
     foreach (@{$args{Fields}})
       {
@@ -937,12 +948,16 @@ sub RequestForm
 	  {
 	    foreach my $v (@v)
 	      {
-		$field->AddValue($v);
+		$field->AddValue()->SetValue($v);
 	      }
 	  }
+        elsif ($_->{Type} =~ /boolean/)
+          {
+             $field->AddValue()->SetValue($v[0] ? '1' : '0');
+          }
 	else
 	  {
-	    $field->SetValue($v[0]);
+	    $field->AddValue()->SetValue($v[0]);
 	  }
       }
 
@@ -1002,7 +1017,7 @@ sub FormHTML
 	    $out .= "<td class=\"xmpp-form-widget\">";
 	  }
 	my $var = $field->GetVar();
-	my @value = $field->GetValue();
+	my @value = $field->GetValues();
 
       TYPE:
 	{
