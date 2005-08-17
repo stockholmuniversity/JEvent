@@ -193,6 +193,11 @@ sub init
 				      {
 					&{$self->{EventCB}}($self,@_) if ref $self->{EventCB} eq 'CODE';
 				      });
+    
+    $self->Client->SetXPathCallBacks("/message/x[\@xmlns=\'http://jabber.org/protocol/pubsub#event\']" => sub
+                                      {
+                                        &{$self->{EventCB}}($self,@_) if ref $self->{EventCB} eq 'CODE';
+                                      });
 
     $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/pubsub',
 				 tag=>'pubsub',
