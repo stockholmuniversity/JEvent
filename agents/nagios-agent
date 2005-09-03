@@ -17,7 +17,7 @@ SYNOPSIS
 
 EOU
 
-getopts('c:h:n');
+getopts('c:hn:');
 die $usage if $opt_h;
 die $usage unless $opt_c;
 
