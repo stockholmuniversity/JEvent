@@ -52,6 +52,10 @@ sub _cmd
 
 my $host = Sys::Hostname::hostname();
 my $je = JEvent->new(Config=>$ini,
+				     Description=>"\nHello I am the nagios agent running on $host.\n".
+				     		      "I can control nagios through the event-interface pipe.\n".
+				     		      "I subscribe to events from rt and supress notification \n".
+				     		      "on hosts for which there are TroubleTickets.\n",
 				     Commands=>{
 						shutdown => sub {
 						  my ($self,$from,$type,$cmd,@args) = @_;
