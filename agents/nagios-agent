@@ -50,7 +50,7 @@ my $je = JEvent->new(Config=>$ini,
 				  $self->LogInfo("Got shutdown from $_[1]");
 				  warn "Got shutdown from $_[1]. Bye...\n";
 				  exit;
-				}
+				},
 				nagios => {
 				  my ($self,$from,$type,$cmd,@args) = @_;
 				  cmd(@args);
@@ -62,7 +62,7 @@ my $je = JEvent->new(Config=>$ini,
 				disable => {
 				  my ($self,$from,$type,$cmd,@args) = @_;
 				  cmd('DISBLE_HOST_NOTIFICATIONS',@args);
-				},
+				}
 			 },
 		     EventCB=>sub {
 		     	my ($self,$sid,$msg) = @_;
