@@ -34,9 +34,11 @@ sub _cmd
 {
 	my ($cmd,@args) = @_;
 	
-	open CMDF,">$opt_n";
+	open CMDF,">$opt_n" 
+		or die "Unable to open $opt_n for writing: $";
 	my $ts = scalar time(); 
-	print CMDF "[%s] %s;%s",$ts,uc($cmd),join(';',@args);
+	my $cmd = sprintf "[%s] %s;%s\n",$ts,uc($cmd),join(';',@args);
+	print CMDF $cmd;
 	close CMDF;
 	
 	return "ok";
