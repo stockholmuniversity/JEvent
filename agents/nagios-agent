@@ -63,7 +63,7 @@ my $je = JEvent->new(Config=>$ini,
 				},
 				disable => sub {
 				  my ($self,$from,$type,$cmd,@args) = @_;
-				  _cmd('DISBLE_HOST_NOTIFICATIONS',@args);
+				  _cmd('DISABLE_HOST_NOTIFICATIONS',@args);
 				}
 			 },
 		     EventCB=>sub {
