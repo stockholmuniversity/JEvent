@@ -30,6 +30,12 @@ my $state = {};
 
 # <ticket/>
 
+# <rt xmlns="http://resource.it.su.se/rt/NS/1.0/#txn">
+#   <rt:txn/>
+# </rt>
+
+
+
 sub _cmd
 {
 	my ($cmd,@args) = @_;
@@ -46,29 +52,28 @@ sub _cmd
 
 my $host = Sys::Hostname::hostname();
 my $je = JEvent->new(Config=>$ini,
-		     Commands=>{
-				shutdown => sub {
-				  my ($self,$from,$type,$cmd,@args) = @_;
-				  $self->LogInfo("Got shutdown from $_[1]");
-				  warn "Got shutdown from $_[1]. Bye...\n";
-				  exit;
-				},
-				nagios => sub {
-				  my ($self,$from,$type,$cmd,@args) = @_;
-				  _cmd(@args);
-				},
-				enable => sub {
-				  my ($self,$from,$type,$cmd,@args) = @_;
-				  _cmd('ENABLE_HOST_NOTIFICATIONS',@args);
-				},
-				disable => sub {
-				  my ($self,$from,$type,$cmd,@args) = @_;
-				  _cmd('DISABLE_HOST_NOTIFICATIONS',@args);
-				}
-			 },
-		     EventCB=>sub {
-		     	my ($self,$sid,$msg) = @_;
-		     }
-		 );
+				     Commands=>{
+						shutdown => sub {
+						  my ($self,$from,$type,$cmd,@args) = @_;
+						  $self->LogInfo("Got shutdown from $_[1]");
+						  warn "Got shutdown from $_[1]. Bye...\n";
+						  exit;
+						},
+						nagios => sub {
+						  my ($self,$from,$type,$cmd,@args) = @_;
+						  _cmd(@args);
+						},
+						enable => sub {
+						  my ($self,$from,$type,$cmd,@args) = @_;
+						  _cmd('ENABLE_HOST_NOTIFICATIONS',@args);
+						},
+						disable => sub {
+						  my ($self,$from,$type,$cmd,@args) = @_;
+						  _cmd('DISABLE_HOST_NOTIFICATIONS',@args);
+						}
+					 },
+				     EventCB=>sub {
+				     	my ($self,$sid,$msg) = @_;
+				     });
 
 $je->Run();
