@@ -35,7 +35,7 @@ sub _cmd
 	my ($cmd,@args) = @_;
 	
 	open CMDF,">$opt_n" 
-		or die "Unable to open $opt_n for writing: $";
+		or die "Unable to open $opt_n for writing: $!\n";
 	my $ts = scalar time(); 
 	my $cmd = sprintf "[%s] %s;%s\n",$ts,uc($cmd),join(';',@args);
 	print CMDF $cmd;
