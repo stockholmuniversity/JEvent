@@ -1097,7 +1097,7 @@ sub evalCommand
       {
 	my $tag;
 
-	return undef unless ($tag) = $body =~ /^\s*(\S+):\s+/o;
+	return undef unless ($tag) = $body =~ s/^\s*(\S+):\s*//o;
 	return undef unless $tag eq $self->Username || $tag eq $self->JID->GetJID("base");
       }
     else
