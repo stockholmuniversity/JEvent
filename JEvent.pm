@@ -178,7 +178,6 @@ sub init
     $self->Client->SetPresenceCallBacks(subscribe => sub {
 					   my $ok = ref $self->{SubscriptionAuthorization} eq 'CODE' ?
 					     &{$self->{SubscriptionAuthorization}}($self,@_) : 1;
-                                           warn $_[1]->GetXML();
 					   if ($ok)
 					     {
 					       $self->Client->PresenceSend(to=>$_[1]->GetFrom(),type=>'subscribed');
@@ -1092,13 +1091,18 @@ sub evalCommand
 
     my $type = $msg->GetType();
     my $body = $msg->GetBody();
+    my $from = Net::XMPP::JID->new($msg->GetFrom());
+    my $sendto = $from;
+
+    my $delay = $msg->GetChild('jabber:x:delay');
+    return undef if $delay;
 
     if ($type eq 'groupchat')
       {
-	my $tag;
-
-	return undef unless ($tag) = $body =~ s/^\s*(\S+):\s*//o;
+	return undef unless $body =~ s/^\s*(\S+):\s*//o;
+        my $tag = $1;
 	return undef unless $tag eq $self->Username || $tag eq $self->JID->GetJID("base");
+        $sendto = $from->GetJID('base');
       }
     else
       {
@@ -1115,7 +1119,6 @@ sub evalCommand
 		my $result = $self->Client->SendAndReceiveWithID($presence,$self->{Timeout});
 		if ($result->GetErrorCode())
 		  {
-		    #warn $result->GetXML();
 		    return undef;
 		  }
 
@@ -1128,18 +1131,12 @@ sub evalCommand
 	  }
       }
 
-    my $from = Net::XMPP::JID->new($msg->GetFrom());
-
-    return $self->Client->MessageSend(to=>$from->GetJID("base"),
-				       type=>$type,
-				       body=>"I have no commands configured.\n")
+    return $self->Client->MessageSend(to=>$sendto,type=>$type,body=>"I have no commands configured.\n")
       unless ref $self->{Commands} eq 'HASH';
 
     my ($cmd,$args);
 
-    return $self->Client->MessageSend(to=>$from->GetJID("base"),
-				      type=>$type,
-				      body=>"I don't understand this: \"$body\"")
+    return $self->Client->MessageSend(to=>$sendto,type=>$type,body=>"I don't understand this: \"$body\"")
       unless ($cmd,$args) = $body =~ /^\s*(\S+)\s*(.*)\s*$/o;
 
     my @args = split /\s+/,$args;
@@ -1148,14 +1145,12 @@ sub evalCommand
     {
       $cmd eq '?' || $cmd eq 'help' || $cmd eq 'who' and do {
 
-	my $cbody = $self->Usage."\nCommands: \n";
+	my $cbody = $self->Usage."\nCommands: \n\n";
 	foreach my $c (keys %{$self->{Commands}})
 	  {
 	    $cbody .= "$c\n";
 	  }
-	return $self->Client->MessageSend(to=>$from->GetJID("base"),
-					  type=>$type,
-					  body=>$cbody);
+	return $self->Client->MessageSend(to=>$sendto,type=>$type,body=>$cbody);
       },last BUILTIN;
     }
 
@@ -1164,24 +1159,17 @@ sub evalCommand
       {
 	if (ref $self->{CommandAuthorization} eq 'CODE')
 	  {
-	    return $self->Client->MessageSend(to=>$from->GetJID("base"),
-					      type=>$type,
-					      body=>'Not authorized')
+	    return $self->Client->MessageSend(to=>$sendto,type=>$type,body=>'Not authorized')
 	      unless &{$self->{CommandAuthorization}}($self,$from->GetJID("base"),$type,$cmd,@args);
 		
 	  }
 	
 	my $cresult = &{$self->{Commands}->{$cmd}}($self,$from->GetJID("base"),$type,$cmd,@args);
-
-	return $self->Client->MessageSend(to=>$from->GetJID("base"),
-					  type=>$type,
-					  body=>$cresult) if $cresult;
+	return $self->Client->MessageSend(to=>$sendto,type=>$type,body=>$cresult) if $cresult;
       }
     else
       {
-	return $self->Client->MessageSend(to=>$from->GetJID("base"),
-					  type=>$type,
-					  body=>"No such command: \"$cmd\"")
+	return $self->Client->MessageSend(to=>$sendto,type=>$type,body=>"No such command: \"$cmd\"")
       }
   }
 
@@ -1290,8 +1278,6 @@ sub Run
 				password=>$self->Password,
 				resource=>$self->Resource);
 
-	#warn $self->Client->PresenceSend()->GetXML();
-	
 	my $result = &{$code}($self);
 
 	$self->Client->Disconnect();
