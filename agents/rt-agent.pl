@@ -30,20 +30,35 @@ my $ini = Config::IniFiles->new(-file=>$opt_c)
 my $host = Sys::Hostname::hostname();
 my $FIFO = $opt_f;
 
-$je = JEvent->new(Config=>$opt_c);
+$je = JEvent->new(Config=>$ini);
 $je->Connect();
 
 while (1) {
-	unless (-p $FIFO) {
-		unlink $FIFO;
-		system('mknod',$FIFO,'p') 
-			&& die "Unable to create $FIFO: $!";
-	}
 	open FIFO,"$FIFO" || die "Unable to open $FIFO for reading: $!";
-	my $xml = <FIFO>;
-	chomp $xml;
+	local $_ = <FIFO>;
+	chomp;
 	close FIFO;	
-	$je->Publish(Node=>$opt_n,Content=>$xml);
+	warn $_;
+	my @entry = split /;/;
+	my $fieldattr = " rt:field=\"$entry[1]\"" if $entry[1];
+	my $xml=<<EOX;
+<rt:rt xmlns:rt="http://resource.it.su.se/rt-jevent/NS/1.0/">
+   <rt:txn rt:ticketId="$entry[0]"${fieldattr} rt:type="$entry[2]">
+EOX
+	$xml.=<<EOX if $entry[3];
+      <rt:oldValue>$entry[3]</rt:oldValue>
+EOX
+	$xml.=<<EOX if $entry[4];
+      <rt:newValue>$entry[4]</rt:newValue>
+EOX
+        $xml.=<<EOX;
+      <rt:creator>$entry[5]</rt:creator>
+      <rt:created>$entry[6]</rt:created>
+   </rt:txn>
+</rt:rt>
+EOX
+        warn $xml;
+	my $msg = $je->Publish(Node=>$opt_n,Host=>'pubsub.cdr.su.se',Content=>$xml);
 }
 
 $je->Disconnect();
