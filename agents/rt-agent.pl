@@ -38,7 +38,6 @@ while (1) {
 	local $_ = <FIFO>;
 	chomp;
 	close FIFO;	
-	warn $_;
 	my @entry = split /;/;
 	my $fieldattr = " rt:field=\"$entry[1]\"" if $entry[1];
 	my $xml=<<EOX;
@@ -57,7 +56,6 @@ EOX
    </rt:txn>
 </rt:rt>
 EOX
-        warn $xml;
 	my $msg = $je->Publish(Node=>$opt_n,Host=>'pubsub.cdr.su.se',Content=>$xml);
 }
 
