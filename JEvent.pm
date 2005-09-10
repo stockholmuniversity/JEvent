@@ -146,6 +146,9 @@ sub init
     $self->{CAFile} = $self->cfg('SSL','cafile') unless $self->{CAFile};
     $self->{CADir} = $self->cfg('SSL','cadir') unless $self->{CADir};
     $self->{ProcessTimeout} = $self->cfg('JEvent','ProcessTimeout');
+    foreach my $handle (split /\s*,\s*/,$self->cfg('JEvent','Handles')) {
+       $self->addHandle($handle);
+    }
 
     $self->{_xmpp} = Net::XMPP::Client->new(@opts);
     $self->Client->SetCallBacks(onauth=>sub
@@ -1082,7 +1085,34 @@ sub FormHTML
 sub Usage
   {
     my $uid = $_[0]->Username;
-    $_[0]->{Description} || "Hello I am $uid";
+    my $desc = $_[0]->{Description} || "Hello I am $uid";
+    $desc .= "\nYou can also call me ".join(',',$_[0]->handles) if $_[0]->handles;
+
+    $desc;
+  }
+
+sub handles
+  {
+     keys %{$_[0]->{_handles}};
+  }
+
+sub addHandle
+  {
+     $_[0]->{_handles}->{$_[1]}++; 
+  }
+
+sub delHandle
+  {
+     delete $_[0]->{_handles}->{$_[1]};
+  }
+
+sub isValidHandle
+  {
+     my ($self,$handle) = @_;
+     return 1 if $handle eq $self->Username;
+     return 1 if $handle eq $self->JID->GetJID("base");
+
+     return grep { $_ eq $handle } $self->handles();
   }
 
 sub evalCommand
@@ -1097,11 +1127,13 @@ sub evalCommand
     my $delay = $msg->GetChild('jabber:x:delay');
     return undef if $delay;
 
+    my $event = $msg->GetChild('http://jabber.org/protocol/pubsub#event');
+    return undef if $event;
+
     if ($type eq 'groupchat')
       {
 	return undef unless $body =~ s/^\s*(\S+):\s*//o;
-        my $tag = $1;
-	return undef unless $tag eq $self->Username || $tag eq $self->JID->GetJID("base");
+	return undef unless $self->isValidHandle($1);
         $sendto = $from->GetJID('base');
       }
     else
@@ -1148,7 +1180,7 @@ sub evalCommand
 	my $cbody = $self->Usage."\nCommands: \n\n";
 	foreach my $c (keys %{$self->{Commands}})
 	  {
-	    $cbody .= "$c\n";
+	    $cbody .= sprintf "%s\n",(defined $self->{CommandInfo}->{$c} ? $self->{CommandInfo}->{$c}->[0] : $c);
 	  }
 	return $self->Client->MessageSend(to=>$sendto,type=>$type,body=>$cbody);
       },last BUILTIN;
@@ -1258,7 +1290,7 @@ sub Run
 			       resource=>$self->Resource,
 			       processtimeout=>$self->{ProcessTimeout} || 1,
 			       register=>0);
-	$self->PreExecute();
+	$self->PostExecute();
       }
     else
       {
