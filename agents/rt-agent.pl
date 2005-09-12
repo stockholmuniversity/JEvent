@@ -36,6 +36,7 @@ $je->Connect();
 while (1) {
 	open FIFO,"$FIFO" || die "Unable to open $FIFO for reading: $!";
 	local $_ = <FIFO>;
+	#warn $_;
 	chomp;
 	close FIFO;	
 	my @entry = split /;/;
@@ -53,6 +54,16 @@ EOX
         $xml.=<<EOX;
       <rt:creator>$entry[5]</rt:creator>
       <rt:created>$entry[6]</rt:created>
+EOX
+        my ($a,$vs) = split /\s*=\s*/,$entry[7];
+	if ($a && $vs) {
+	   foreach my $v (split /\s*,\s*/,$vs) {
+	      $xml.=<<EOX;
+      <rt:customField rt:name=\"$a\">$v</rt:customField>
+EOX
+	   }
+	}
+	$xml.=<<EOX;
    </rt:txn>
 </rt:rt>
 EOX
