@@ -146,7 +146,7 @@ eval
     $q->print($q->hidden(-name=>'_cmd',-value=>$cmd));
 
     $q->print("<h1>");
-    $q->print("<a href=\"$me&_cmd=$cmd&_host=$qhost&_node=\"><b>/</b></</a>");
+    $q->print("<a href=\"$me&_cmd=$cmd&_host=$qhost&_node=\"><b>/</b></a>");
     if ($qnode)
       {
 	my @links;
