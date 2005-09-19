@@ -146,7 +146,8 @@ sub init
     $self->{CAFile} = $self->cfg('SSL','cafile') unless $self->{CAFile};
     $self->{CADir} = $self->cfg('SSL','cadir') unless $self->{CADir};
     $self->{ProcessTimeout} = $self->cfg('JEvent','ProcessTimeout');
-    foreach my $handle (split /\s*,\s*/,$self->cfg('JEvent','Handles')) {
+    my $h = $self->cfg('JEvent','Handles') || '';
+    foreach my $handle (split /\s*,\s*/,$h) {
        $self->addHandle($handle);
     }
 
@@ -874,11 +875,6 @@ sub GetFormFieldValue
     undef;
   }
 
-sub SendForm
-  {
-    JEvent::RequestForm(@_);
-  }
-
 sub AddCGIForm
   {
     my ($self,$q,$cgi,@fields) = @_;
@@ -924,16 +920,41 @@ sub SubmitForm
 		     @opts);
   }
 
-sub RequestForm
+sub RequestIQForm
   {
-    my ($self,%args) = @_;
+    my ($self,@args) = @_;
+
+    my %args = @args;
     my $iq = Net::XMPP::IQ->new();
     $iq->SetIQ(type=>'get',
                from=>$args{From},
                to=>$args{To});
 
     my $q = $iq->NewChild($args{NS} || 'http://jabber.org/protocol/commands');
-    my $form = $q->NewChild('jabber:x:data');
+    $self->AddFormRequest($q,@args);
+    $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+  }
+
+sub RequestMessageForm
+  {
+    my ($self,@args) = @_;
+
+    my %args = @args;
+    my $msg = Net::XMPP::Message->new();
+    $msg->SetFrom($args{From});
+    $msg->SetTo($args{To});
+    $msg->SetBody($args{Body});
+
+    my $q = $msg->NewChild($args{NS} || 'http://jabber.org/protocol/commands');
+    $self->AddFormRequest($msg,@args);
+    $self->Client->SendAndReceiveWithID($msg,$self->{Timeout});
+  }
+
+sub AddFormRequest
+  {
+    my ($self,$elt,%args) = @_;
+
+    my $form = $elt->NewChild('jabber:x:data');
     $form->SetTitle($args{Title});
     $form->SetType($args{type} || 'form');
     $form->SetInstructions($args{Instructions});
@@ -944,7 +965,7 @@ sub RequestForm
 	$field->SetType($_->{Type});
 	$field->SetLabel($_->{Label});
 	$field->SetDesc($_->{Desc});
-	$field->SetRequred($_->{Required});
+	$field->SetRequired($_->{Required});
 	my @v = ref $_->{Value} eq 'ARRAY' ? @{$_->{Value}} : ($_->{Value});
 	if ($_->{Type} =~ /-multi/)
 	  {
@@ -962,8 +983,6 @@ sub RequestForm
 	    $field->AddValue()->SetValue($v[0]);
 	  }
       }
-
-    $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
   }
 
 sub IQRequest
