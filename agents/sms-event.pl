@@ -52,9 +52,6 @@ EOC
 }
 
 
-$je = JEvent->new();
-$je->Connect();
-
 my $id_attr=" id='$id'" if $id;
 
 my $xml =<<EOX;
@@ -68,6 +65,11 @@ $xml .=<<EOX;
 EOX
 
 warn $xml;
+
+exit;
+
+$je = JEvent->new();
+$je->Connect();
 
 $je->Publish(Node=>'services/sms/it.su.se',Content=>$xml);
 
