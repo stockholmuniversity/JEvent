@@ -47,6 +47,11 @@ sub new
     $this->init();
   }
 
+sub DESTROY
+  {
+    $_[0]->Disconnect();
+  }
+
 sub LogWarn
   {
     my($self,$msg,@args) = @_;
