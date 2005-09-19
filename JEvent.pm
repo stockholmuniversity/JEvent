@@ -40,7 +40,8 @@ sub new
     my $class = ref $self || $self;
 
     my %me = @_;
-    $me{Config} = Config::IniFiles->new() unless UNIVERSAL::isa($me{Config},'Config::IniFiles');
+    $me{Config} = Config::IniFiles->new(-file=>$ENV{JEVENTINI} || '/etc/jevent.ini')
+       unless UNIVERSAL::isa($me{Config},'Config::IniFiles');
 
     my $this = bless \%me,$class;
     $this->init();
