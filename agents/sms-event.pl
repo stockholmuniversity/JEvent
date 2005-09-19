@@ -36,18 +36,18 @@ if ($file && -f $file) {
    close SMS;
 
    $c=<<EOC;
-<sms:message>
-  <sms:headers>
-EOC;
+      <sms:message>
+        <sms:headers>
+EOC
    foreach my $h (@order) {
-      $c=<<EOC;
-     <sms:header name='$h'>$headers->{$h}</sms:header>
+      $c.=<<EOC;
+            <sms:header name='$h'>$headers->{$h}</sms:header>
 EOC
    }
-   $c=<<EOC;
-  </sms:headers>
-  <sms:body>[!CDATA[$body]]</sms:body>
-</sms:message>
+   $c.=<<EOC;
+        </sms:headers>
+        <sms:body>[!CDATA[$body]]</sms:body>
+      </sms:message>
 EOC
 }
 
@@ -55,7 +55,7 @@ EOC
 my $id_attr=" id='$id'" if $id;
 
 my $xml =<<EOX;
-<sms xmlns:sms='http://resource.it.su.se/sms/NS/1.0'
+<sms xmlns:sms='http://resource.it.su.se/sms/NS/1.0'>
    <sms:event type='$type'$id_attr>
 EOX
 $xml .= $c if $c;
