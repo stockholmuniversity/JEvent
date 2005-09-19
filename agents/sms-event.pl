@@ -64,13 +64,5 @@ $xml .=<<EOX;
 </sms>
 EOX
 
-warn $xml;
-
-exit;
-
 $je = JEvent->new();
-$je->Connect();
-
-$je->Publish(Node=>'services/sms/it.su.se',Content=>$xml);
-
-$je->Disconnect();
+$je->Connect()->Publish(Node=>'services/sms/it.su.se',Content=>$xml);
