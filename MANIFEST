@@ -1,9 +1,1 @@
-Changes
-JEvent.pm
-JEvent/RDF.pm
-Makefile.PL
-MANIFEST
-README
-test.pl
-META.yml                                 Module meta-data (added by MakeMaker)
-agents/ldifwatch
+foo
