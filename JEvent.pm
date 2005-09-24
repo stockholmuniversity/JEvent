@@ -196,7 +196,9 @@ sub init
 					     {
 					       $self->Client->PresenceSend(to=>$_[1]->GetFrom(),type=>'unsubscribed');
 					     }
-					 });
+					},
+                                        available => sub { &{$self->{PresenceCB}}($self,@_) if ref $self->{PresenceCB} eq 'CODE'; }
+                                        );
 
     $self->Client->SetXPathCallBacks("/message/event[\@xmlns=\'http://jabber.org/protocol/pubsub#event\']" => sub
 				      {
@@ -1189,7 +1191,7 @@ sub evalCommand
       }
 
     my $r = &{$self->{MessageHook}}($self,$sid,$msg) if $self->{MessageHook} eq 'CODE';
-    return $self->Client->MessageSend(to=>$sendto,type=$type,body=>$r) if $r;
+    return $self->Client->MessageSend(to=>$sendto,type=>$type,body=>$r) if $r;
 
     return $self->Client->MessageSend(to=>$sendto,type=>$type,body=>"I have no commands configured.\n")
       unless ref $self->{Commands} eq 'HASH';
