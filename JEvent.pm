@@ -49,7 +49,7 @@ sub new
 
 sub DESTROY
   {
-    $_[0]->Disconnect();
+    eval { $_[0]->Disconnect(); };
   }
 
 sub LogWarn
@@ -1187,6 +1187,9 @@ sub evalCommand
 	      }
 	  }
       }
+
+    my $r = &{$self->{MessageHook}}($self,$sid,$msg) if $self->{MessageHook} eq 'CODE';
+    return $self->Client->MessageSend(to=>$sendto,type=$type,body=>$r) if $r;
 
     return $self->Client->MessageSend(to=>$sendto,type=>$type,body=>"I have no commands configured.\n")
       unless ref $self->{Commands} eq 'HASH';
