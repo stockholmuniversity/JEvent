@@ -566,6 +566,19 @@ sub init
 					  Var => { path => '@var' },
 					 });
 
+    $self->Client->AddNameSpace(ns=>'vcard-temp',
+	                        tag=>'vCard',
+                                xpath => {
+                                            Fn => { path => 'FN/text()' },
+                                            GivenN => { path => 'N/GIVEN/text()' },
+                                            FamilyN => { path => 'N/FAMILY/text()' },
+                                            MiddleN => { path => 'N/Middle/text()' },
+                                            NickName => { path => 'NICKNAME/text()' },
+                                            Email => { path => 'EMAIL/INTERNET/USERID/text()' },
+                                            JabberID => { path => 'JABBERID/text()' },
+                                            VCard => { path => '.', type => 'raw' }
+                                         });
+
     $self;
   }
 
@@ -668,6 +681,14 @@ EOH
 	  return "\n$usage";
 	}
     };
+  }
+
+sub GetVCARD
+  {
+     my ($self,@opts) = @_;
+
+     my $iq = $self->IQRequest(Type=>'get',Request=>sub { $_[0]->AddVCard(); },@opts); 
+     $iq->GetChild('vcard-temp') if $iq;
   }
 
 sub Subscribe
