@@ -1,5 +1,6 @@
 package JEvent::XML;
 
+use base 'JEvent';
 use XML::Simple;
 
 sub xmlEventCB
