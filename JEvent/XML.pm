@@ -21,3 +21,5 @@ sub PreExecute
 
     $self->{EventCB} = \&xmlEventCB if ref $self->{XEventCB} eq 'CODE';
   }
+
+1;
