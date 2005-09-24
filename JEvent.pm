@@ -566,7 +566,7 @@ sub init
 					  Var => { path => '@var' },
 					 });
 
-    $self->Client->AddNameSpace(ns=>'vcard-temp',
+    $self->Client->AddNamespace(ns=>'vcard-temp',
 	                        tag=>'vCard',
                                 xpath => {
                                             Fn => { path => 'FN/text()' },
