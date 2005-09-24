@@ -1203,6 +1203,7 @@ sub evalCommand
 		  }
 
 		$self->{_rooms}->{$room_jid}++;
+                &{$self->{MUCEventCB}}($self,$room_jid,'join') if ref $self->{MUCEventCB} eq 'CODE';
 		return $self->Client->MessageSend(from=>$self->JID->GetJID("base"),
 						  to=>$room_jid->GetJID("base"),
 						  type=>'groupchat',
