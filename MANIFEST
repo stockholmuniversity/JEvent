@@ -1,6 +1,7 @@
 Changes
 JEvent.pm
 JEvent/RDF.pm
+JEvent/XML.pm
 Makefile.PL
 MANIFEST
 README
