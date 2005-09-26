@@ -704,7 +704,7 @@ sub GetVCARD
   {
      my ($self,@opts) = @_;
 
-     my $iq = $self->IQRequest(Type=>'get',Request=>sub { $_[0]->AddVCard(); },@opts); 
+     my $iq = $self->IQRequest(Type=>'get',Request=>sub { $_[0]->AddChild('vcard-temp'); },@opts); 
      $iq->GetChild('vcard-temp') if $iq;
   }
 
