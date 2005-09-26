@@ -158,15 +158,28 @@ sub init
     }
 
     $self->{_xmpp} = Net::XMPP::Client->new(@opts);
-    $self->Client->SetCallBacks(onauth=>sub
-				 {
+    $self->Client->SetCallBacks(onauth=>sub {
 				   $self->Client->PresenceSend();
 				   &{$self->{StartCB}}($self) if ref $self->{StartCB} eq 'CODE';
 				 },
-				 onprocess=>sub
-				 {
+				 onprocess=>sub {
 				   &{$self->{ProcessCB}}($self) if ref $self->{ProcessCB} eq 'CODE';
-				 });
+				 },
+                                 presence=>sub {
+                                   my ($self,$sid,$msg) = @_;
+                                   if ($msg->GetType() eq 'subscribe') {
+                                       my $ok = ref $self->{SubscriptionAuthorization} eq 'CODE' ?
+                                          &{$self->{SubscriptionAuthorization}}($self,@_) : 1;
+                                       if ($ok) {
+                                          $self->Client->PresenceSend(to=>$_[1]->GetFrom(),type=>'subscribed');
+                                       } else {
+                                          $self->Client->PresenceSend(to=>$_[1]->GetFrom(),type=>'unsubscribed');
+                                       }  
+                                   } else {
+                                       &{$self->{PresenceCB}}($self,@_) if ref $self->{PresenceCB} eq 'CODE';
+                                   }
+                                 }
+                               );
 
     $self->Client->SetMessageCallBacks(error=>sub
 					{
@@ -184,21 +197,6 @@ sub init
 					{
 					  &{$self->{MessageCB}}($self,@_) if ref $self->{MessageCB} eq 'CODE';
 					});
-
-    $self->Client->SetPresenceCallBacks(subscribe => sub {
-					   my $ok = ref $self->{SubscriptionAuthorization} eq 'CODE' ?
-					     &{$self->{SubscriptionAuthorization}}($self,@_) : 1;
-					   if ($ok)
-					     {
-					       $self->Client->PresenceSend(to=>$_[1]->GetFrom(),type=>'subscribed');
-					     }
-					   else
-					     {
-					       $self->Client->PresenceSend(to=>$_[1]->GetFrom(),type=>'unsubscribed');
-					     }
-					},
-                                        available => sub { &{$self->{PresenceCB}}($self,@_) if ref $self->{PresenceCB} eq 'CODE'; }
-                                        );
 
     $self->Client->SetXPathCallBacks("/message/event[\@xmlns=\'http://jabber.org/protocol/pubsub#event\']" => sub
 				      {
