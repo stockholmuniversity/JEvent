@@ -166,7 +166,7 @@ sub init
 				   &{$self->{ProcessCB}}($self) if ref $self->{ProcessCB} eq 'CODE';
 				 },
                                  presence=>sub {
-                                   my ($self,$sid,$msg) = @_;
+                                   my ($sid,$msg) = @_;
                                    if ($msg->GetType() eq 'subscribe') {
                                        my $ok = ref $self->{SubscriptionAuthorization} eq 'CODE' ?
                                           &{$self->{SubscriptionAuthorization}}($self,@_) : 1;
