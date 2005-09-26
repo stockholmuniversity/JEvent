@@ -176,6 +176,7 @@ sub init
                                           $self->Client->PresenceSend(to=>$_[1]->GetFrom(),type=>'unsubscribed');
                                        }  
                                    } else {
+                                       warn $msg->GetXML();
                                        &{$self->{PresenceCB}}($self,@_) if ref $self->{PresenceCB} eq 'CODE';
                                    }
                                  }
@@ -452,6 +453,23 @@ sub init
 						     path => 'x',
 						     child => { ns => 'jabber:x:data' } }
 					  });
+
+    $self->Client->AddNamespace(ns=>'http://jabber.org/protocol/muc#user',
+	                        tag => 'x',
+	                        xpath => {
+                                           Item => { calls => [ qw/Get Add/ ],
+						     type => 'child',
+						     path => 'item',
+					             child => { ns=> '__netxmpp__:muc:user:item' }
+                                                   }
+                                         });
+
+    $self->Client->AddNamespace(ns=>'__netxmpp__:muc:user:item',
+			        tag => 'item',
+                                xpath => {
+                                            Affiliation=> { path => '@affiliation' },
+                                            Role => { path => '@role' }
+                                         });
 
     $self->Client->AddNamespace(ns=>'jabber:x:conference',
 				 tag => 'x',
