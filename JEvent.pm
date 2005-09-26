@@ -468,7 +468,8 @@ sub init
 			        tag => 'item',
                                 xpath => {
                                             Affiliation=> { path => '@affiliation' },
-                                            Role => { path => '@role' }
+                                            Role => { path => '@role' },
+			                    JID => { type => 'jid', path => '@jid' }
                                          });
 
     $self->Client->AddNamespace(ns=>'jabber:x:conference',
