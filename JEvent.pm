@@ -176,7 +176,6 @@ sub init
                                           $self->Client->PresenceSend(to=>$_[1]->GetFrom(),type=>'unsubscribed');
                                        }  
                                    } else {
-                                       warn $msg->GetXML();
                                        &{$self->{PresenceCB}}($self,@_) if ref $self->{PresenceCB} eq 'CODE';
                                    }
                                  }
@@ -586,6 +585,8 @@ sub init
     $self->Client->AddNamespace(ns=>'vcard-temp',
 	                        tag=>'vCard',
                                 xpath => {
+                                            Version => { path => '@version' },
+                                            Prodid => { path => '@prodid' },
                                             Fn => { path => 'FN/text()' },
                                             GivenN => { path => 'N/GIVEN/text()' },
                                             FamilyN => { path => 'N/FAMILY/text()' },
@@ -704,7 +705,10 @@ sub GetVCARD
   {
      my ($self,@opts) = @_;
 
-     my $iq = $self->IQRequest(Type=>'get',Request=>sub { $_[0]->AddChild('vcard-temp'); },@opts); 
+     my $iq = $self->IQRequest(Type=>'get',
+                               NS=>'vcard-temp',
+                               Request=>sub { $_[0]->SetVersion(2); 
+                                              $_[0]->SetProdid("-//HandGen//NONSGML vGen v1.0//EN"); },@opts); 
      $iq->GetChild('vcard-temp') if $iq;
   }
 
@@ -1042,8 +1046,8 @@ sub IQRequest
 
     my $elt = $iq->NewChild($opts{NS} || 'http://jabber.org/protocol/pubsub');
     &{$opts{Request}}($elt,\%opts,$self);
-
-    $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+    my $r = $self->Client->SendAndReceiveWithID($iq,$self->{Timeout});
+    $r;
   }
 
 sub FormFieldVars
