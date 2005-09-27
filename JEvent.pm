@@ -1233,7 +1233,7 @@ sub evalCommand
 	  }
       }
 
-    my $r = &{$self->{MessageHook}}($self,$sid,$msg) if $self->{MessageHook} eq 'CODE';
+    my $r = &{$self->{MessageHook}}($self,$sid,$msg,$sendto,$type) if ref $self->{MessageHook} eq 'CODE';
     return $self->Client->MessageSend(to=>$sendto,type=>$type,body=>$r) if $r;
 
     return $self->Client->MessageSend(to=>$sendto,type=>$type,body=>"I have no commands configured.\n")
