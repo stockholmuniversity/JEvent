@@ -49,39 +49,51 @@ sub publishPersonInfo
     $self->LogError("No such person in LADOK: $nin"),return undef unless $p;
 
     my $model = $self->model;
-    my $subject = RDF::Core::Resource->new("urn:x-ladok:identifiers:personnummer:$nin");
 
-    # The request header
-    my $reqr = RDF::Core::Resource->new("urn:x-su:jevent:directory");
-    $model->addStmt(RDF::Core::Statement->new($reqr,
-					      $reqr->new("urn:x-su:jevent:directory:object"),
-					      $subject));
+    my $entry = RDF::Core::Resource->new("urn:x-ladok:identifiers:personnummer:$nin");
+    my $directory = RDF::Core::Resource->new("urn:x-su:jevent:directory");
 
-    $model->addStmt(RDF::Core::Statement->new($reqr,
-					      $reqr->new("urn:x-su:jevent:directory:identifier"),
-					      RDF::Core::Literal->new("socialSecurityNumber")));
+    $model->addStmt(RDF::Core::Statement->new($directory,
+					      $directory->new("urn:x-su:jevent:directory:includes"),
+					      $entry));
+    
+    my $ssn = RDF::Core::Resource->new("urn:x-su:ldap:schema:socialSecurityNumber");
+    $model->addStmt(RDF::Core::Statement->new($entry,
+					      $entry->new("urn:x-su:jevent:directory:entry:identifier"),
+					      $ssn));
 
-    # The data description
-    $model->addStmt(RDF::Core::Statement->new($subject,
-					      $subject->new("urn:x-su:ldap:schema:norEduPersonNIN"),
+    $model->addStmt(RDF::Core::Statement->new($ssn,
+					      $ssn->new("urn:x-su:jevent:directory:attribute:value"),
 					      RDF::Core::Literal->new($nin)));
-    $model->addStmt(RDF::Core::Statement->new($subject,
-                                              $subject->new("urn:x-su:ldap:schema:socialSecurityNumber"),
+
+    my $modify = RDF::Core::Resource->new("urn:x-su:jevent:directory:attribute");
+
+    $model->addStmt(RDF::Core::Statement->new($entry,
+					      $entry->new("urn:x-su:jevent:directory:entry:modify"),
+					      $modify));
+
+    $model->addStmt(RDF::Core::Statement->new($modify,
+					      $modify->new("urn:x-su:ldap:schema:norEduPersonNIN"),
 					      RDF::Core::Literal->new($nin)));
+
+    $model->addStmt(RDF::Core::Statement->new($modify,
+                                              $modify->new("urn:x-su:ldap:schema:socialSecurityNumber"),
+					      RDF::Core::Literal->new($nin)));
+
     foreach my $oc qw(top person inetOrgPerson eduPerson norEduPerson ssnObject)
       {
-	$model->addStmt(RDF::Core::Statement->new($subject,
-						  $subject->new("urn:x-su:ldap:schema:objectClass"),
+	$model->addStmt(RDF::Core::Statement->new($modify,
+						  $modify->new("urn:x-su:ldap:schema:objectClass"),
 						  RDF::Core::Literal->new($oc)));
       }
 
     my $sn = $p->getNameAsUTF8('enamn');
     my $givenName = $p->getNameAsUTF8('tnamn');
-    $model->addStmt(RDF::Core::Statement->new($subject,
-					      $subject->new("urn:x-su:ldap:schema:sn"),
+    $model->addStmt(RDF::Core::Statement->new($modify,
+					      $modify->new("urn:x-su:ldap:schema:sn"),
 					      RDF::Core::Literal->new($sn)));
-    $model->addStmt(RDF::Core::Statement->new($subject,
-					      $subject->new("urn:x-su:ldap:schema:givenName"),
+    $model->addStmt(RDF::Core::Statement->new($modify,
+					      $modify->new("urn:x-su:ldap:schema:givenName"),
 					      RDF::Core::Literal->new($givenName)));
     $self->PublishModel(Model=>$model);
   }

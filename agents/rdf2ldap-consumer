@@ -37,6 +37,37 @@ my $dcm = DCM::Secure::SASL->new($ini->val('LDAP','Server'),
 				 version=>3,
 				 BindDN=>$ini->val('LDAP','BindDN'));
 
+sub _sync
+  {
+    my ($self,$model,$o) = @_;
+    my $dcm = $self->{Data};
+
+    my $id = $model->getObjects($o->getURI,"urn:x-su:jevent:directory:entry:identifier")->[0];
+    my $v = $model->getObjects($id->getURI,"urn:x-su:jevent:directory:attribute:value")->[0];
+    my @a = split /:/,$id->getURI();
+    my $a = pop @a;
+    my $filter = "($a=".$v->getValue().")";
+
+    my %mods;
+    
+    foreach my $m (@{$model->getObjects($o->getURI,"urn:x-su:jevent:directory:entry:modify")})
+      {
+	my $stmts = $model->getStmts($m);
+	for (my $s = $stmts->getFirst(); defined $s; $s = $stmts->getNext())
+	  {
+	    push(@{$mods{$s->getPredicate->getURI}},$s->getObject->getValue());
+	  }
+	$stmts->close();
+      }
+
+    $dcm->{DryRun};
+
+    foreach (keys %mods)
+      {
+	printf "%s: %s\n",$_,join(',',@{$mods{$_}})
+      }
+  }
+
 my $host = Sys::Hostname::hostname();
 my $je = JEvent::RDF->new(Config=>$ini,
 			  Commands=>{
@@ -49,15 +80,14 @@ my $je = JEvent::RDF->new(Config=>$ini,
 				    },
 			  RDFCB => sub {
 			    my ($self,$model) = @_;
-
-			    warn $self->
-			    my $reqs = $model->getContainerObjects("urn:x-su:jevent:directory");
-			    return unless ref $reqs eq 'ARRAY';
-
-			    foreach my $req (@{$reqs})
+			    #warn $self->serialize($model);
+			    my $entries = $model->getObjects("urn:x-su:jevent:directory","urn:x-su:jevent:directory:includes");
+			    return unless ref $entries eq 'ARRAY';
+			    
+			    foreach my $o (@{$entries})
 			      {
-				
+				_sync($self,$model,$o);
 			      }
 			  });
 
-$je->Run();
+$je->Run(Data=>$dcm);

@@ -10,16 +10,19 @@ sub rdfEventCB
   {
     my ($self,$sid,$msg) = @_;
 
-    my $items = $msg->GetItems();
-    return unless $items;
-    foreach my $item ($items->GetItems())
+    my $x = $msg->GetChild("http://jabber.org/protocol/pubsub#event");
+    my $inode = $x->GetItems();
+    return unless $inode;
+    
+    foreach my $item ($inode->GetItems())
       {
+	my $rdfxml = $item->GetContent();
 	my $model;
 	eval
 	  {
 	    my $storage = RDF::Core::Storage::Memory->new();
 	    $model = RDF::Core::Model->new(Storage=>$storage);
-	    my %opts = (Model => $model,Source=>$msg->GetXML,SourceType=>'string',BaseURI=>'http://jevent.su.se');
+	    my %opts = (Model=>$model,Source=>$rdfxml,SourceType=>'string',BaseURI=>'http://jevent.su.se');
 	    my $parser = RDF::Core::Model::Parser->new(%opts);
 	    $parser->parse;
 	  };
@@ -27,7 +30,6 @@ sub rdfEventCB
 	  {
 	    $self->LogError("Error parsing RDF: \"%s\"\n",$@);
 	  }
-
 	if (ref $model)
 	  {
 	    eval
@@ -60,21 +62,13 @@ sub serialize
     $xml;
   }
 
-sub item
-  {
-    my ($self,$model) = @_;
-
-    my $id = $self->gen_uuid();
-    "<item id='$id'>".$self->serialize($model)."</item>";
-  }
-
 sub PublishModel
   {
     my $self = shift;
     
 
     my %args = @_;
-    $args{Content} = $self->item($args{Model});
+    $args{Content} = $self->serialize($args{Model});
     my @opts = %args;
     $self->Publish(@opts);
   }
