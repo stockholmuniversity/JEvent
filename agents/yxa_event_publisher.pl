@@ -82,11 +82,6 @@ sub _parse_yxa
         }
     }
 
-    foreach my $k (qw/method response uri to from peer client/) {
-      $$a{$k} =~ /^\"(.*)\"$/;
-      $out->{$k} = $1;
-    }
-
     if (defined $$a{from_user}) {
         $$a{from_user} =~ /^\"(.*)\"$/;
         push @u, $1;
@@ -98,10 +93,12 @@ sub _parse_yxa
     $out->{users} = \@u;
 
     foreach my $k (qw/method response uri to from peer client/) {
-      $$a{$k} =~ /^\"(.*)\"$/;
-      $out->{$k} = $1;
-      $out->{$k} =~ s/</&lt\;/og;
-      $out->{$k} =~ s/>/&gt\;/og;
+      if (defined $$a{$k}) {
+	      $$a{$k} =~ /^\"(.*)\"$/;
+	      $out->{$k} = $1;
+	      $out->{$k} =~ s/</&lt\;/og;
+	      $out->{$k} =~ s/>/&gt\;/og;
+      }
     }
     
     return $out;
