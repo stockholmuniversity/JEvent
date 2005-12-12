@@ -1,19 +1,31 @@
-#!/usr/local/bin/perl
+#!/pkg/perl/5.8.6/bin/perl
 
 use Unix::Syslog qw(:macros :subs);
 use JEvent;
 use Config::IniFiles;
 use XML::Simple;
 
-my $buf = "";
-my $nread = sysread STDIN,$buf,2;
-do { syslog(LOG_INFO,"$0: port closed"); exit; } unless $nread == 2;
-my $len = unpack "n",$buf;
-$nread = sysread STDIN,$buf,$len;
+my $prog = $ARGV[0];
+my ($buf,$nread,$len);
+
+unless ($prog) {
+  $buf = "";
+  $nread = sysread STDIN,$buf,2;
+  do { syslog(LOG_INFO,"$0: port closed"); exit; } unless $nread == 2;
+  $len = unpack "n",$buf;
+  $nread = sysread STDIN,$buf,$len;
+} else {
+  $buf = $prog
+}
 
 openlog "yxa/$buf", LOG_PID, LOG_USER;
+syslog(LOG_INFO,"starting");
 my $ini = Config::IniFiles->new(-file=>'/local/yxa/config/yxa-jevent.ini'); 
 my $je = JEvent->new(Config=>$ini);
+$je->Connect();
+syslog(LOG_INFO,"connected to jevent");
+
+exit if $prog;
 
 
 # Loves erlang-expr parser
@@ -31,10 +43,8 @@ sub split_erlang_list
 
 sub _parse_yxa
 {
-    my ($host,$program,$pid,$msg) = @_;
+    my ($msg) = @_;
     my $out = {};
-
-    $out->{service} = 'sip';
 
     $msg =~ /c=(\w+);\s+id=\"([^\"]+)\";\s+\[(.*)]\s*$/ or return undef;
 
@@ -44,7 +54,7 @@ sub _parse_yxa
     return undef if (!defined $a);
 
     $id =~ /(.*?)(-UAS.*|-UAC.*|)$/;
-    $out->{caller_id} = $1;
+    $out->{branch} = $1;
 
     if ($2 eq "-UAS") {
         $out->{direction} = 1;
@@ -54,9 +64,9 @@ sub _parse_yxa
         $out->{direction} = 0;
     }
 
-    if (defined $$a{caller_id}) {
-        $$a{caller_id} =~ /^\"(.*)\"$/;
-        $out->{caller_id} = $1;
+    if (defined $$a{branch}) {
+        $$a{branch} =~ /^\"(.*)\"$/;
+        $out->{branch} = $1;
     }
     if (defined $$a{dialog}) {
         $$a{dialog} =~ /^\"(.*)\"$/;
@@ -71,6 +81,12 @@ sub _parse_yxa
             push @u, $e;
         }
     }
+
+    foreach my $k (qw/method response uri to from peer client/) {
+      $$a{$k} =~ /^\"(.*)\"$/;
+      $out->{$k} = $1;
+    }
+
     if (defined $$a{from_user}) {
         $$a{from_user} =~ /^\"(.*)\"$/;
         push @u, $1;
@@ -80,35 +96,14 @@ sub _parse_yxa
         push @u, $1;
     }
     $out->{users} = \@u;
+
+    foreach my $k (qw/method response uri to from peer client/) {
+      $$a{$k} =~ /^\"(.*)\"$/;
+      $out->{$k} = $1;
+      $out->{$k} =~ s/</&lt\;/og;
+      $out->{$k} =~ s/>/&gt\;/og;
+    }
     
-    if (defined $$a{method}) {
-        $$a{method} =~ /^\"(.*)\"$/;
-        $out->{method} = "$1";
-    }
-    if (defined $$a{response}) {
-        $$a{response} =~ /^\"(.*)\"$/;
-        $out->{response} = $1;
-    }
-    if (defined $$a{uri}) {
-        $$a{uri} =~ /^\"(.*)\"$/;
-        $out->{uri} = $1;
-    }
-    if (defined $$a{to}) {
-        $$a{to} =~ /^\"(.*)\"$/;
-        $out->{to} = $1;
-    }
-    if (defined $$a{from}) {
-        $$a{from} =~ /^\"(.*)\"$/;
-        $out->{from} = $1;
-    }
-    if (defined $$a{peer}) {
-        $$a{peer} =~ /^\"(.*)\"$/;
-        $out->{peer} = $1;
-    }
-    if (defined $$a{client}) {
-        $$a{client} =~ /^\"(.*)\"$/;
-        $out->{client} = $1;
-    }
     return $out;
 }
     
@@ -129,7 +124,9 @@ for(;;)
             $level = LOG_INFO,last CASE if $level_char == 'i';
             $level = LOG_ERR,last CASE if $level_char == 'e';
          }
-         my $xml = XMLout(_parse_yxa($buf));
+         my $ref = _parse_yxa($buf);
+         my $xml = XMLout($ref,RootName=>'sipevent');
+         syslog(LOG_INFO,$xml);
          $je->Publish(Content=>$xml);
       };
 
