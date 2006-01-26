@@ -163,6 +163,7 @@ sub init
 				   &{$self->{StartCB}}($self) if ref $self->{StartCB} eq 'CODE';
 				 },
 				 onprocess=>sub {
+                                   $self->Client->PresenceSend();
 				   &{$self->{ProcessCB}}($self) if ref $self->{ProcessCB} eq 'CODE';
 				 },
                                  presence=>sub {
@@ -1280,7 +1281,7 @@ sub evalCommand
 
 sub spocpCommandAuthorization
   {
-    my ($self,$from,$cmd,@args) = @_;
+    my ($self,$from,$type,$cmd,@args) = @_;
 
     return 1 unless $self->{SPOCPServer};
 
