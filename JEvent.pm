@@ -25,7 +25,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(
 	
 );
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 use Net::XMPP qw(Client);
 use Net::XMPP::JID;
@@ -1304,6 +1304,19 @@ sub spocpSubscriptionAuthorization
     return !$res->is_error;
   }
 
+sub spocpMessageAuthorization
+  {
+    my ($self,$sid,$msg) = @_;
+
+    return 1 unless $self->{SPOCPServer};
+
+    my $spocp = Net::SPOCP::Client->new(server=>$self->{SPOCPServer});
+    my $to = $self->JID->GetJID("base");
+    my $from = Net::XMPP::JID->new($msg->GetFrom())->GetJID("base");
+    my $res = $spocp->query([jevent => [method => 'message'],[from => $from],[to => $to]]);
+    return !$res->is_error;
+  }
+
 sub PreExecute() { }
 
 sub PostExecute() { }
@@ -1347,6 +1360,8 @@ sub Run
       unless ref $self->{CommandAuthorization} eq 'CODE';
     $self->{SubscriptionAuthorization} = \&spocpSubscriptionAuthorization
       unless ref $self->{SubscriptionAuthorization} eq 'CODE';
+    $self->{MessageAuthorization} = \&spocpMessageAuthorization
+      unless ref $self->{MessageAuthorization} eq 'CODE';
     $self->{Data} = $opts{Data} if $opts{Data};
 
     unless ($code)
