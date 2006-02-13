@@ -8,7 +8,8 @@ my $host = hostname;
 my $description = $ARGV[0];
 my $code = $ARGV[1];
 
-die "Usage: $0 'description' 'return-code' < [check-output]" unless $code && $description;
+die "Usage: $0 'description' 'return-code' < [check-output]" 
+   unless ($code && $description);
 
 my $out = "";
 while (<STDIN>) {
