@@ -9,7 +9,10 @@ my $description = $ARGV[0];
 my $code = $ARGV[1];
 
 die "Usage: $0 'description' 'return-code' < [check-output]" 
-   unless ($code && $description);
+   unless $code;
+
+die "Usage: $0 'description' 'return-code' < [check-output]"
+   unless $description;
 
 my $out = "";
 while (<STDIN>) {
