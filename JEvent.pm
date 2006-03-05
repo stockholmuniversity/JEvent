@@ -30,7 +30,6 @@ our $VERSION = '0.14';
 use Net::XMPP qw(Client);
 use Net::XMPP::JID;
 use Data::UUID;
-use Net::SPOCP;
 use Sys::Syslog qw(:DEFAULT);
 use Config::IniFiles;
 
@@ -1282,8 +1281,8 @@ sub evalCommand
 sub spocpCommandAuthorization
   {
     my ($self,$from,$type,$cmd,@args) = @_;
-
     return 1 unless $self->{SPOCPServer};
+    use Net::SPOCP;
 
     my $spocp = Net::SPOCP::Client->new(server=>$self->{SPOCPServer});
     my $to = $self->JID->GetJID("base");
@@ -1294,8 +1293,8 @@ sub spocpCommandAuthorization
 sub spocpSubscriptionAuthorization
   {
     my ($self,$sid,$msg) = @_;
-
     return 1 unless $self->{SPOCPServer};
+    use Net::SPOCP;
 
     my $spocp = Net::SPOCP::Client->new(server=>$self->{SPOCPServer});
     my $to = $self->JID->GetJID("base");
@@ -1309,7 +1308,7 @@ sub spocpMessageAuthorization
     my ($self,$sid,$msg) = @_;
 
     return 1 unless $self->{SPOCPServer};
-
+    use Net::SPOCP;
     my $spocp = Net::SPOCP::Client->new(server=>$self->{SPOCPServer});
     my $to = $self->JID->GetJID("base");
     my $from = Net::XMPP::JID->new($msg->GetFrom())->GetJID("base");
