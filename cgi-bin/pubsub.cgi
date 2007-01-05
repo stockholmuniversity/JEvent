@@ -46,11 +46,16 @@ sub _xmlpp
 sub _indent
   {
     my $expat = shift;
+    my $extra = shift;
 
     my $out = "";
     for ($i = 0; $i < $expat->{depth}; $i++)
       {
 	$out .= "&nbsp;&nbsp;&nbsp;";
+      }
+    for ($i = 0; $i < $extra; $i++)
+      {
+        $out .= "&nbsp;";
       }
     $out;
   }
@@ -79,8 +84,9 @@ sub _xml_elt_start
     $expat->{html} .= '&lt;<font color="green">' . $element . '</font>';
     if (%attribs)
       {
+        my $ca = 0;
 	foreach (keys %attribs) {
-	  $expat->{html} .= ' <font color="red">'.$_.'</font>=&quot;<font color="blue">'.$attribs{$_}.'</font>&quot;';
+	  $expat->{html} .= ($ca++ == 0 ? "" : "\n"._indent($expat,length($element)+1)).' <font color="red">'.$_.'</font>=&quot;<font color="blue">'.$attribs{$_}.'</font>&quot;';
 	}
       }
     $expat->{html} .= '&gt;';
@@ -324,7 +330,7 @@ eval
 		$q->print($q->checkbox(-name=>'_delete',-label=>$id,-checked=>0,-value=>$id));
 		$q->print("</td>\n");
 		$q->print("</tr>");
-		$q->print("<tr><td class=\"$cl\">");
+		$q->print("<tr><td style=\"font-size: xx-small;\" class=\"$cl\">");
 		_xmlpp($q,$item->GetContent());
 		$q->print("</td></tr>");
 	      }
@@ -548,7 +554,9 @@ if ($@)
     my $msg = $@;
     my $info = ref $msg ? $msg->GetErrorCode() : $msg;
     $q->print("<h1>Error</h1>\n<h2>$info</h2>\n");
+    $q->print("<div style=\"font-size: xx-small;\">\n");
     _xmlpp($q,$msg->GetXML()) if ref $msg;
+    $q->print("</div>\n");
   }
 
 $q->end();
