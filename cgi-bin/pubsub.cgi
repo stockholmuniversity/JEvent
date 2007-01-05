@@ -288,7 +288,7 @@ eval
       $cmd eq 'dopublish' and do
 	{
 	  my $content = $q->param('_content');
-	  my $msg = $je->Publish(Node=>$qnode,Content=>$content,Id=>$q->param('_id'));
+	  my $msg = $je->Publish(Host=>$qhost,Node=>$qnode,Content=>$content,Id=>$q->param('_id'));
 	  die $msg if $msg->GetType() eq 'error';
 	  $cmd = 'showitems';
 	};
