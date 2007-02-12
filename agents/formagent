@@ -35,7 +35,11 @@ my $je = JEvent->new(Config=>$ini,
 				},
                                 form => sub {
                                   my ($self,$from,$type,$cmd,@args) = @_;
-                                  my $result = $self->MForm(To=>$from,From=>$self->{JID});
+                                  my $result = $self->RequestIQForm(To=>$from,
+                                                                    From=>$self->{JID},
+                                                                    Type=>'set',
+                                                                    NS=>'jabber:iq:search',
+                                                                    Fields=>[{Var=>'ans',Type=>'text-single'}]);
                                 },
 				publish => sub {
 				  my ($self,$from,$type,$cmd,@args) = @_;

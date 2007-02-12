@@ -485,6 +485,15 @@ sub init
 						    path  => 'x',
 						    child => { ns => 'jabber:x:data' } }
 					 });
+    
+    $self->Client->AddNamespace(ns=>'jabber:iq:search',
+                                tag => 'query',
+                                xpath => {
+                                          Form => { calls => [ qw/Set Defined Get/ ],
+                                                    type  => 'child',
+                                                    path  => 'x',
+                                                    child => { ns => 'jabber:x:data' } }
+                                          });
 
     $self->Client->AddNamespace(ns=>'jabber:x:data',
                                 tag=>'x',
@@ -976,7 +985,7 @@ sub RequestIQForm
 
     my %args = @args;
     my $iq = Net::XMPP::IQ->new();
-    $iq->SetIQ(type=>'get',
+    $iq->SetIQ(type=>$args{Type} || 'get',
                from=>$args{From},
                to=>$args{To});
 
@@ -1021,16 +1030,16 @@ sub AddFormRequest
 	  {
 	    foreach my $v (@v)
 	      {
-		$field->AddValue()->SetValue($v);
+		$field->AddValue()->SetValue($v) if defined $v;
 	      }
 	  }
         elsif ($_->{Type} =~ /boolean/)
           {
-             $field->AddValue()->SetValue($v[0] ? '1' : '0');
+             $field->AddValue()->SetValue($v[0] ? '1' : '0') if defined $v[0];
           }
 	else
 	  {
-	    $field->AddValue()->SetValue($v[0]);
+	    $field->AddValue()->SetValue($v[0]) if defined $v[0];
 	  }
       }
   }

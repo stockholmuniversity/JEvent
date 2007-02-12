@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/local/bin/perl
 
 use strict;
 use JEvent;
@@ -52,10 +52,11 @@ my $csta = Net::CSTA->new(Host=>$csta_server,Port=>$csta_port)
 foreach (@numbers)
 {
 	my $result = $csta->request(serviceID => 71,
-                                serviceArgs => {monitorObject=>{dialingNumber=>$_}});
+                                    serviceArgs => {monitorObject=>{dialingNumber=>$_}});
 }
 
 my $je = JEvent->new(Config => $ini);
+$je->Connect();
 
 for (;;)
 {
