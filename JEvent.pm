@@ -1193,6 +1193,43 @@ sub isValidHandle
      return grep { $_ eq $handle } $self->handles();
   }
 
+sub GetRoster
+  {
+     my $self = shift;
+     my @jids;
+     
+     my %JIDS = $self->{_xmpp}->RosterGet();
+     
+     for my $jid (sort keys(%JIDS)) 
+     {
+	 push(@jids, $jid) if !ref($jid);
+     }
+     
+     @jids;
+  }
+
+sub DelRosterJID
+  {
+     my ($self, $arg)  = @_;
+     my $jidExists;
+     
+     return undef unless $arg;
+     
+     my @jids = $self->GetRoster();
+     
+     for my $jid (@jids)
+     {
+	 if($jid eq $arg)
+	 {
+	     $jidExists = 1;
+	 }
+     }
+     $self->{_xmpp}->RosterRemove(jid=>"$arg") if $jidExists;
+     return "JID $arg successfully deleted" if $jidExists;
+
+     return "No JID by the name $arg exists!";
+  }
+
 sub evalCommand
   {
     my ($self,$sid,$msg) = @_;
