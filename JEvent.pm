@@ -1211,7 +1211,6 @@ sub GetRoster
 sub DelRosterJID
   {
      my ($self, $arg)  = @_;
-     my $jidExists;
      
      return undef unless $arg;
      
@@ -1221,11 +1220,10 @@ sub DelRosterJID
      {
 	 if($jid eq $arg)
 	 {
-	     $jidExists = 1;
+     	     $self->{_xmpp}->RosterRemove(jid=>"$arg");
+             return "JID $arg successfully deleted";
 	 }
      }
-     $self->{_xmpp}->RosterRemove(jid=>"$arg") if $jidExists;
-     return "JID $arg successfully deleted" if $jidExists;
 
      return "No JID by the name $arg exists!";
   }
