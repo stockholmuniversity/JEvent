@@ -1292,36 +1292,28 @@ sub evalCommand
 
     my @args = split /\s+/,$args;
 
-  BUILTIN:
-    {
-      $cmd eq '?' || $cmd eq 'help' || $cmd eq 'who' and do {
-
-	my $cbody = $self->Usage."\nCommands: \n\n";
-	foreach my $c (keys %{$self->{Commands}})
-	  {
-	    $cbody .= sprintf "%s\n",(defined $self->{CommandInfo}->{$c} ? $self->{CommandInfo}->{$c}->[0] : $c);
-	  }
-	return $self->Client->MessageSend(to=>$sendto,type=>$type,body=>$cbody);
-      },last BUILTIN;
-    }
-
-
+    my $cbody;
     if (ref $self->{Commands}->{$cmd} eq 'CODE')
+    {
+      if (ref $self->{CommandAuthorization} eq 'CODE')
       {
-	if (ref $self->{CommandAuthorization} eq 'CODE')
-	  {
-	    return $self->Client->MessageSend(to=>$sendto,type=>$type,body=>'Not authorized')
-	      unless &{$self->{CommandAuthorization}}($self,$from->GetJID("base"),$type,$cmd,@args);
-		
-	  }
-	
-	my $cresult = &{$self->{Commands}->{$cmd}}($self,$from->GetJID("base"),$type,$cmd,@args);
-	return $self->Client->MessageSend(to=>$sendto,type=>$type,body=>$cresult) if $cresult;
+        $cbody = 'Not authorized' unless &{$self->{CommandAuthorization}}($self,$from->GetJID("base"),$type,$cmd,@args);
       }
+      $cbody = &{$self->{Commands}->{$cmd}}($self,$from->GetJID("base"),$type,$cmd,@args) unless $cbody;
+    }
+    else if($cmd eq '?' || $cmd eq 'help' || $cmd eq 'who')
+    {
+      $cbody = $self->Usage."\nCommands: \n\n";
+      foreach my $c (keys %{$self->{Commands}})
+      {
+        $cbody .= sprintf "%s\n",(defined $self->{CommandInfo}->{$c} ? $self->{CommandInfo}->{$c}->[0] : $c);
+      }
+    }
     else
-      {
-	return $self->Client->MessageSend(to=>$sendto,type=>$type,body=>"No such command: \"$cmd\"")
-      }
+    {
+      $cbody = "No such command: \"$cmd\"";
+    }
+    return $self->Client->MessageSend(to=>$sendto,type=>$type,body=>$cbody);
   }
 
 sub spocpCommandAuthorization
