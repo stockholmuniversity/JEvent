@@ -1306,6 +1306,7 @@ sub evalCommand
       $cbody = $self->Usage."\nCommands: \n\n";
       foreach my $c (keys %{$self->{Commands}})
       {
+        next if $c eq '?' || $c eq 'help' || $c eq 'who';
         $cbody .= sprintf "%s\n",(defined $self->{CommandInfo}->{$c} ? $self->{CommandInfo}->{$c}->[0] : $c);
       }
     }
