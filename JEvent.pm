@@ -25,7 +25,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(
 	
 );
-our $VERSION = '0.16';
+our $VERSION = '0.17';
 
 use Net::XMPP qw(Client);
 use Net::XMPP::JID;
@@ -150,7 +150,7 @@ sub init
     $self->{SSLVerify} = $self->cfg('SSL','verify') unless $self->{SSLVerify};
     $self->{CAFile} = $self->cfg('SSL','cafile') unless $self->{CAFile};
     $self->{CADir} = $self->cfg('SSL','cadir') unless $self->{CADir};
-    $self->{ProcessTimeout} = $self->cfg('JEvent','ProcessTimeout');
+    $self->{ProcessTimeout} = $self->cfg('JEvent','ProcessTimeout') unless $self->{ProcessTimeout};
     my $h = $self->cfg('JEvent','Handles') || '';
     foreach my $handle (split /\s*,\s*/,$h) {
        $self->addHandle($handle);
