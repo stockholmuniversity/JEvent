@@ -1291,15 +1291,16 @@ sub evalCommand
     my @args = split /\s+/,$args;
 
     my $cbody;
+    my $dynret;
     if (ref $self->{DynamicCommands} eq 'CODE')
     {
       if (ref $self->{CommandAuthorization} eq 'CODE')
       {
         $cbody = 'Not authorized' unless &{$self->{CommandAuthorization}}($self,$from->GetJID("base"),$type,'DYNAMIC',($cmd, @args));
       }
-      $cbody = &{$self->{DynamicCommands}}($self,$from->GetJID("base"),$type, ($cmd, @args)) unless $cbody;
+      $dynret = &{$self->{DynamicCommands}}($self,$from->GetJID("base"),$type, ($cmd, @args)) unless $cbody;
     }
-    if (ref $self->{Commands}->{$cmd} eq 'CODE' && !$cbody)
+    if (ref $self->{Commands}->{$cmd} eq 'CODE' && !$cbody && !$dynret)
     {
       if (ref $self->{CommandAuthorization} eq 'CODE')
       {
@@ -1316,7 +1317,7 @@ sub evalCommand
         $cbody .= sprintf "%s\n",(defined $self->{CommandInfo}->{$c} ? $self->{CommandInfo}->{$c}->[0] : $c);
       }
     }
-    if(!$cbody)
+    if(!$dynret && !$cbody && ref $self->{Commands}->{$cmd} ne 'CODE')
     {
       $cbody = "No such command: \"$cmd\"";
     }
