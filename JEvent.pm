@@ -1308,7 +1308,7 @@ sub evalCommand
       }
       $cbody = &{$self->{Commands}->{$cmd}}($self,$from->GetJID("base"),$type,$cmd,@args) unless $cbody;
     }
-    elsif($cmd eq '?' || $cmd eq 'help' || $cmd eq 'who')
+    elsif($cmd eq '?' || $cmd eq 'help' || $cmd eq 'who' && !$cbody && !$dynret)
     {
       $cbody = $self->Usage."\nCommands: \n\n";
       foreach my $c (keys %{$self->{Commands}})
