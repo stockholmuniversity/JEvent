@@ -25,7 +25,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(
 	
 );
-our $VERSION = '0.18';
+our $VERSION = '0.19';
 
 use Net::XMPP qw(Client);
 use Net::XMPP::JID;
@@ -1313,9 +1313,24 @@ sub evalCommand
       $cbody = $self->Usage."\nCommands: \n\n";
       foreach my $c (keys %{$self->{Commands}})
       {
-        next if $c eq '?' || $c eq 'help' || $c eq 'who';
+        next if $c eq '?' || $c eq 'help' || $c eq 'who' || $c eq '_status_check';
         $cbody .= sprintf "%s\n",(defined $self->{CommandInfo}->{$c} ? $self->{CommandInfo}->{$c}->[0] : $c);
       }
+    }
+    elsif($cmd eq '_status_check' && !$cbody && !$dynret)
+    {
+	if (ref $self->{CommandAuthorization} eq 'CODE')
+	{
+	    $cbody = 'Not authorized' unless &{$self->{CommandAuthorization}}($self,$from->GetJID("base"),$type,$cmd,@args);
+	}
+	if(ref $self->{Commands}->{$cmd} eq 'CODE')
+	{
+	    $cbody = &{$self->{Commands}->{$cmd}}($self,$from->GetJID("base"),$type,$cmd,@args) unless $cbody;
+	}
+	else
+	{
+	    $cbody = "OK" unless $cbody;
+	}
     }
     if(!$dynret && !$cbody && ref $self->{Commands}->{$cmd} ne 'CODE')
     {
