@@ -151,6 +151,7 @@ sub init
     $self->{CAFile} = $self->cfg('SSL','cafile') unless $self->{CAFile};
     $self->{CADir} = $self->cfg('SSL','cadir') unless $self->{CADir};
     $self->{ProcessTimeout} = $self->cfg('JEvent','ProcessTimeout') unless $self->{ProcessTimeout};
+    $self->{ProcessTimeout} = 1 unless $self->{ProcessTimeout};
     my $h = $self->cfg('JEvent','Handles') || '';
     foreach my $handle (split /\s*,\s*/,$h) {
        $self->addHandle($handle);
@@ -1395,7 +1396,7 @@ sub Connect
 					  SSL_ca_dir=>$self->{CADir}
 					 },
 			     resource=>$self->Resource,
-			     processtimeout=>$self->{ProcessTimeout} || 1,
+			     processtimeout=>$self->{ProcessTimeout},
 			     register=>0);
     die "Unable to connect" unless $status;
     $self->Client->AuthSend(username=>$self->Username,
@@ -1437,7 +1438,7 @@ sub Run
 					    SSL_ca_dir=>$self->{CADir}
 					   },
 			       resource=>$self->Resource,
-			       processtimeout=>$self->{ProcessTimeout} || 1,
+			       processtimeout=>$self->{ProcessTimeout},
 			       register=>0);
 	$self->PostExecute();
       }
@@ -1452,7 +1453,7 @@ sub Run
 					      SSL_ca_dir=>$self->{CADir}
 					     },
 				 resource=>$self->Resource,
-				 processtimeout=>$self->{ProcessTimeout} || 1,
+				 processtimeout=>$self->{ProcessTimeout},
 				 register=>0);
 	die "Unable to connect" unless $status;
 	$self->Client->AuthSend(username=>$self->Username,
