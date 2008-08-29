@@ -91,7 +91,7 @@ sub JID
 
 sub Hostname
   {
-    $_[0]->JID->GetServer();
+    $_[0]->{Hostname} || $_[0]->JID->GetServer();
   }
 
 sub Username
@@ -141,6 +141,7 @@ sub init
     push(@opts,debuglevel=>$self->{DebugLevel}) if $self->{DebugLevel};
     push(@opts,debugfile=>$self->{DebugFile}) if $self->{DebugFile};
 
+    $self->{Hostname} = $self->cfg('JEvent','Hostname');
     $self->{Host} = $self->cfg('PubSub','Host') unless $self->{Host};
     $self->{Node} = $self->cfg('PubSub','Node') unless $self->{Node};
     $self->{Description} = $self->cfg('JEvent','Description') unless $self->{Description};
@@ -216,6 +217,11 @@ sub init
 						      type => 'child',
 						      path => 'publish',
 						      child => { ns => '__netxmpp__:pubsub:publish' } },
+
+                                         Configure => { calls => [ qw/Get Add/],
+                                                         type => 'child',
+                                                         path => 'configure',
+                                                         child => { ns => '__netxmpp__:pubsub:owner:configure' } },
 
 					 Retract => { calls => [qw/Get Add Defined/],
 						      type => 'child',
@@ -642,7 +648,7 @@ EOH
     {
       $subcmd eq 'create' and do
 	{
-	  return $self->Create(Node=>$node)->GetXML();
+          return $self->Create(Node=>$node)->GetXML();
 	},last SWTICH;
 
       $subcmd eq 'delete' and do
@@ -772,7 +778,8 @@ sub Create
     $self->IQRequest(Type=>'set',
 		     Request=>sub {
 		       my $create = $_[0]->AddCreate();
-		       $create->SetNode($_[1]->{Node})
+		       $create->SetNode($_[1]->{Node});
+                       $_[0]->AddConfigure();
 		     },
 		     @opts);
   }
@@ -942,7 +949,7 @@ sub AddCGIForm
     my @result;
     foreach my $f (@fields)
       {
-	push(@result,{Var => $f, Value => [$cgi->param($f) || 0]});
+	push(@result,{Var => $f, Value => [$cgi->param($f)]}) if $cgi->param($f);
       }
 
     return $self->AddForm($q,@result);
@@ -1127,7 +1134,7 @@ sub FormHTML
 	      $out .= $q->textfield(-name=>$var,-default=>$value[0],-size=>20);
 	    },last TYPE;
 
-	  $type eq 'text-multiple' || $type eq 'jid-multiple' and do
+	  $type eq 'text-multiple' || $type eq 'text-multi' || $type eq 'jid-multiple' || $type eq 'jid-multi' and do
 	    {
 	      $out .= $q->textarea(-name=>$var,-default=>join("\n",@value),-rows=>6,-cols=>40);
 	    },last TYPE;
