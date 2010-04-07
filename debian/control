@@ -2,14 +2,23 @@ Source: libjevent-perl
 Section: perl
 Priority: optional
 Build-Depends: debhelper (>= 5.0.0)
-Build-Depends-Indep: perl (>= 5.8.8-12ubuntu0.4), libnet-xmpp-perl, libconfig-inifiles-perl, libossp-uuid-perl, libnet-spocp-perl
-Maintainer:  IT och media <linux-sua@it.su.se>
+Build-Depends-Indep: perl (>= 5.8.8-12ubuntu0.4),
+		     libnet-xmpp-perl,
+		     libconfig-inifiles-perl,
+		     libossp-uuid-perl,
+		     libnet-spocp-perl
+Maintainer: IT och media <linux-sua@it.su.se>
 Standards-Version: 3.7.2
 Homepage: http://search.cpan.org/dist/JEvent/
 
 Package: libjevent-perl
 Architecture: all
-Depends: ${perl:Depends}, ${misc:Depends}, libnet-xmpp-perl, libconfig-inifiles-perl, libossp-uuid-perl, libnet-spocp-perl
+Depends: ${perl:Depends},
+	 ${misc:Depends},
+	 libnet-xmpp-perl,
+	 libconfig-inifiles-perl,
+	 libossp-uuid-perl,
+	 libnet-spocp-perl
 Description:  An eventdriven framework for XMPP PubSub
  JEvent is a wrapper class around Net::XMPP which also implements parts of
  PubSub (JEP0060). The purpouse of JEvent is to create a framework for building
@@ -21,5 +30,3 @@ Description:  An eventdriven framework for XMPP PubSub
  Method calls are authorized using calls to a SPOCP server. This behaviour can
  be overridden by providing the CommandAuthorization argument to the JEvent
  constructor.
- .
- This description was automagically extracted from the module by dh-make-perl.
